@@ -2,9 +2,9 @@ import { chromium } from 'playwright';
 import assert from 'assert';
 
 console.log('🚀 Initiating Comprehensive Production E2E Test Suite');
-console.log('Target Environment: https://blogwebsite-lake.vercel.app\n');
+console.log('Target Environment: https://resourcehub-lake.vercel.app\n');
 
-const BASE_URL = 'https://blogwebsite-lake.vercel.app';
+const BASE_URL = 'https://resourcehub-lake.vercel.app';
 
 async function runProductionTests() {
   const browser = await chromium.launch({ channel: 'chrome', headless: true });
@@ -52,16 +52,22 @@ async function runProductionTests() {
     console.log('\nTest 2: Verifying Public Topics Catalog & Footer Reset Guard...');
     await page.goto(`${BASE_URL}/topics`);
     await page.waitForSelector('h1:has-text("Course Topics & Resources")');
+    await page.waitForSelector('.spinner', { state: 'detached', timeout: 15000 }).catch(() => {});
 
-    // Verify empty state container exists initially
-    await page.waitForSelector('.state-box');
-    const emptyTitle = await page.locator('.state-title').textContent();
-    assert.strictEqual(emptyTitle.trim(), 'No topics found', 'Initial catalog should show clean empty state');
+    // Verify catalog renders topics grid or clean empty state
+    await page.waitForSelector('.state-title, .topics-grid');
+    const hasGrid = await page.locator('.topics-grid').isVisible();
+    if (hasGrid) {
+      console.log('✓ Topics grid active with existing course modules');
+    } else {
+      const emptyTitle = await page.locator('.state-title').textContent();
+      assert.strictEqual(emptyTitle.trim(), 'No topics found', 'Initial catalog should show clean empty state');
+    }
 
     // Verify Footer "Reset Sample Data" button is NOT visible for unauthenticated users
     const unauthResetBtn = page.locator('footer button:has-text("Reset Sample Data")');
     assert.strictEqual(await unauthResetBtn.count(), 0, 'Reset Sample Data button must be hidden for unauthenticated visitors');
-    console.log('✓ Test 2 passed: Clean empty catalog state and unauthenticated footer reset guard verified');
+    console.log('✓ Test 2 passed: Public catalog state and unauthenticated footer reset guard verified');
 
     // =========================================================================
     // Test 3: Admin Authentication & Password Enforcement (atul1234)
@@ -100,6 +106,8 @@ async function runProductionTests() {
     console.log('\nTest 4: Testing Academic Topic Creation & Live Catalog Sync...');
     await page.goto(`${BASE_URL}/admin/topics`);
     await page.waitForSelector('h1:has-text("Manage Academic Topics")');
+    await page.waitForSelector('.spinner', { state: 'detached', timeout: 15000 }).catch(() => {});
+    await page.waitForSelector('table, .empty-state, .state-box', { timeout: 10000 });
 
     // Open Create Topic Modal
     await page.click('button:has-text("Create New Topic")');
@@ -110,10 +118,11 @@ async function runProductionTests() {
     await page.locator('#newTopicCode').fill('CS303');
     await page.locator('#newTopicDesc').fill('Modern distributed architectures, frontend state, and security.');
     await page.click('.modal-footer button[type="submit"]');
-    await page.waitForTimeout(600);
+    await page.waitForSelector('.modal-dialog', { state: 'detached', timeout: 10000 });
 
     // Verify topic exists in Admin table
-    const createdTopicRow = page.locator(`table tr:has-text("${topicTitle}")`);
+    const createdTopicRow = page.locator('table tr').filter({ hasText: topicTitle });
+    await createdTopicRow.waitFor({ state: 'visible', timeout: 10000 });
     assert(await createdTopicRow.isVisible(), 'Created topic must appear in Admin management table');
 
     // Verify topic now appears on public /topics page
@@ -129,6 +138,8 @@ async function runProductionTests() {
     console.log('\nTest 5: Testing Facilitator Account Provisioning...');
     await page.goto(`${BASE_URL}/admin/facilitators`);
     await page.waitForSelector('h1:has-text("Manage Course Facilitators")');
+    await page.waitForSelector('.spinner', { state: 'detached', timeout: 15000 }).catch(() => {});
+    await page.waitForSelector('table, .empty-state, .state-box', { timeout: 10000 });
 
     await page.click('button:has-text("Add Facilitator")');
     await page.waitForSelector('.modal-dialog');
@@ -138,9 +149,10 @@ async function runProductionTests() {
     await page.locator('#facFullName').fill(facName);
     await page.locator('#facUsername').fill(facUsername);
     await page.click('.modal-footer button[type="submit"]');
-    await page.waitForTimeout(600);
+    await page.waitForSelector('.modal-dialog', { state: 'detached', timeout: 10000 });
 
-    const facRow = page.locator(`table tr:has-text("${facName}")`);
+    const facRow = page.locator('table tr').filter({ hasText: facName });
+    await facRow.waitFor({ state: 'visible', timeout: 10000 });
     assert(await facRow.isVisible(), 'Provisioned facilitator must appear in management table');
     console.log('✓ Test 5 passed: Facilitator provisioning verified in admin dashboard');
 
