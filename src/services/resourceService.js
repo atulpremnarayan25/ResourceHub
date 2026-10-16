@@ -15,19 +15,25 @@ export const resourceService = {
       if (fileType && fileType !== 'ALL') query = query.eq('file_type', fileType.toUpperCase());
 
       const { data, error } = await query;
-      if (error) throw new Error(error.message);
-
-      let list = (data || []).map(mapResourceFromDb);
-      if (searchQuery && searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        list = list.filter(
-          (r) =>
-            r.title.toLowerCase().includes(q) ||
-            (r.storedFilename && r.storedFilename.toLowerCase().includes(q)) ||
-            (r.uploaderName && r.uploaderName.toLowerCase().includes(q))
-        );
+      if (error) {
+        if (error.code === 'PGRST205') {
+          console.warn('[resourceService] Supabase tables not migrated yet. Falling back to local storage.');
+        } else {
+          throw new Error(error.message);
+        }
+      } else {
+        let list = (data || []).map(mapResourceFromDb);
+        if (searchQuery && searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          list = list.filter(
+            (r) =>
+              r.title.toLowerCase().includes(q) ||
+              (r.storedFilename && r.storedFilename.toLowerCase().includes(q)) ||
+              (r.uploaderName && r.uploaderName.toLowerCase().includes(q))
+          );
+        }
+        return list;
       }
-      return list;
     }
 
     // Fallback: LocalStorage Mock Engine

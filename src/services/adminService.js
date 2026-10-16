@@ -10,23 +10,27 @@ export const adminService = {
         .eq('role', 'FACILITATOR')
         .order('created_at', { ascending: true });
 
-      if (fErr) throw new Error(fErr.message);
+      if (fErr && fErr.code === 'PGRST205') {
+        console.warn('[adminService] Supabase tables not migrated yet. Falling back to local storage.');
+      } else if (fErr) {
+        throw new Error(fErr.message);
+      } else {
+        const { data: resources, error: rErr } = await supabase
+          .from('resources')
+          .select('uploaded_by');
 
-      const { data: resources, error: rErr } = await supabase
-        .from('resources')
-        .select('uploaded_by');
+        if (rErr) throw new Error(rErr.message);
 
-      if (rErr) throw new Error(rErr.message);
+        const counts = (resources || []).reduce((acc, r) => {
+          acc[r.uploaded_by] = (acc[r.uploaded_by] || 0) + 1;
+          return acc;
+        }, {});
 
-      const counts = (resources || []).reduce((acc, r) => {
-        acc[r.uploaded_by] = (acc[r.uploaded_by] || 0) + 1;
-        return acc;
-      }, {});
-
-      return (facilitators || []).map((f) => ({
-        ...mapProfileFromDb(f),
-        uploadCount: counts[f.username] || 0
-      }));
+        return (facilitators || []).map((f) => ({
+          ...mapProfileFromDb(f),
+          uploadCount: counts[f.username] || 0
+        }));
+      }
     }
 
     // Fallback: LocalStorage Mock Engine
@@ -68,17 +72,19 @@ export const adminService = {
         .select()
         .single();
 
-      if (error) {
+      if (error && error.code === 'PGRST205') {
+        console.warn('[adminService] Supabase tables not migrated yet. Falling back to local storage.');
+      } else if (error) {
         if (error.code === '23505') {
           throw new Error(`Username "${cleanUsername}" is already taken.`);
         }
         throw new Error(error.message);
+      } else {
+        return {
+          ...mapProfileFromDb(data),
+          uploadCount: 0
+        };
       }
-
-      return {
-        ...mapProfileFromDb(data),
-        uploadCount: 0
-      };
     }
 
     // Fallback: LocalStorage Mock Engine
@@ -117,18 +123,23 @@ export const adminService = {
         .eq('id', id)
         .single();
 
-      if (fetchErr || !current) throw new Error('Facilitator not found.');
-      const newStatus = current.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
+      if (fetchErr && fetchErr.code === 'PGRST205') {
+        console.warn('[adminService] Supabase tables not migrated yet. Falling back to local storage.');
+      } else if (fetchErr || !current) {
+        throw new Error('Facilitator not found.');
+      } else {
+        const newStatus = current.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
 
-      const { data, error: updateErr } = await supabase
-        .from('profiles')
-        .update({ status: newStatus })
-        .eq('id', id)
-        .select()
-        .single();
+        const { data, error: updateErr } = await supabase
+          .from('profiles')
+          .update({ status: newStatus })
+          .eq('id', id)
+          .select()
+          .single();
 
-      if (updateErr) throw new Error(updateErr.message);
-      return mapProfileFromDb(data);
+        if (updateErr) throw new Error(updateErr.message);
+        return mapProfileFromDb(data);
+      }
     }
 
     // Fallback: LocalStorage Mock Engine
@@ -154,27 +165,31 @@ export const adminService = {
         .eq('id', id)
         .single();
 
-      if (fetchErr || !fac) throw new Error('Facilitator not found.');
+      if (fetchErr && fetchErr.code === 'PGRST205') {
+        console.warn('[adminService] Supabase tables not migrated yet. Falling back to local storage.');
+      } else if (fetchErr || !fac) {
+        throw new Error('Facilitator not found.');
+      } else {
+        // Check active uploads
+        const { count, error: countErr } = await supabase
+          .from('resources')
+          .select('*', { count: 'exact', head: true })
+          .eq('uploaded_by', fac.username);
 
-      // Check active uploads
-      const { count, error: countErr } = await supabase
-        .from('resources')
-        .select('*', { count: 'exact', head: true })
-        .eq('uploaded_by', fac.username);
+        if (countErr) throw new Error(countErr.message);
 
-      if (countErr) throw new Error(countErr.message);
+        if ((count || 0) > 0) {
+          throw new Error('Cannot delete facilitator with existing resource uploads. Disable their account instead.');
+        }
 
-      if ((count || 0) > 0) {
-        throw new Error('Cannot delete facilitator with existing resource uploads. Disable their account instead.');
+        const { error: delErr } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', id);
+
+        if (delErr) throw new Error(delErr.message);
+        return true;
       }
-
-      const { error: delErr } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', id);
-
-      if (delErr) throw new Error(delErr.message);
-      return true;
     }
 
     // Fallback: LocalStorage Mock Engine

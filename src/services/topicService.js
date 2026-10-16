@@ -10,19 +10,25 @@ export const topicService = {
         .order('created_at', { ascending: true });
 
       const { data, error } = await query;
-      if (error) throw new Error(error.message);
-
-      let list = (data || []).map(mapTopicFromDb);
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        list = list.filter(
-          (t) =>
-            t.name.toLowerCase().includes(q) ||
-            (t.code && t.code.toLowerCase().includes(q)) ||
-            (t.description && t.description.toLowerCase().includes(q))
-        );
+      if (error) {
+        if (error.code === 'PGRST205') {
+          console.warn('[topicService] Supabase tables not migrated yet. Falling back to local storage.');
+        } else {
+          throw new Error(error.message);
+        }
+      } else {
+        let list = (data || []).map(mapTopicFromDb);
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          list = list.filter(
+            (t) =>
+              t.name.toLowerCase().includes(q) ||
+              (t.code && t.code.toLowerCase().includes(q)) ||
+              (t.description && t.description.toLowerCase().includes(q))
+          );
+        }
+        return list;
       }
-      return list;
     }
 
     // Fallback: LocalStorage Mock Engine
@@ -58,8 +64,13 @@ export const topicService = {
         .eq('id', id)
         .single();
 
-      if (error || !data) throw new Error('Topic not found.');
-      return mapTopicFromDb(data);
+      if (error && error.code === 'PGRST205') {
+        console.warn('[topicService] Supabase tables not migrated yet. Falling back to local storage.');
+      } else if (error || !data) {
+        throw new Error('Topic not found.');
+      } else {
+        return mapTopicFromDb(data);
+      }
     }
 
     // Fallback: LocalStorage Mock Engine

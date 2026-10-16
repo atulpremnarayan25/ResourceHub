@@ -70,50 +70,54 @@ export const likeService = {
         .eq('resource_id', resourceId)
         .maybeSingle();
 
-      if (fetchErr) throw new Error(fetchErr.message);
-
-      let isLiked = false;
-      if (existing) {
-        // Remove like (PostgreSQL trigger automatically decrements resources.like_count)
-        const { error: delErr } = await supabase
-          .from('likes')
-          .delete()
-          .eq('id', existing.id);
-
-        if (delErr) throw new Error(delErr.message);
-        isLiked = false;
+      if (fetchErr && fetchErr.code === 'PGRST205') {
+        console.warn('[likeService] Supabase tables not migrated yet. Falling back to local storage.');
+      } else if (fetchErr) {
+        throw new Error(fetchErr.message);
       } else {
-        // Insert like (PostgreSQL trigger automatically increments resources.like_count)
-        const { error: insErr } = await supabase
-          .from('likes')
-          .insert([{
-            student_id: studentId,
-            resource_id: resourceId
-          }]);
+        let isLiked = false;
+        if (existing) {
+          // Remove like (PostgreSQL trigger automatically decrements resources.like_count)
+          const { error: delErr } = await supabase
+            .from('likes')
+            .delete()
+            .eq('id', existing.id);
 
-        if (insErr) {
-          // Catch unique constraint violation (23505) gracefully
-          if (insErr.code === '23505') {
-            isLiked = true;
-          } else {
-            throw new Error(insErr.message);
-          }
+          if (delErr) throw new Error(delErr.message);
+          isLiked = false;
         } else {
-          isLiked = true;
+          // Insert like (PostgreSQL trigger automatically increments resources.like_count)
+          const { error: insErr } = await supabase
+            .from('likes')
+            .insert([{
+              student_id: studentId,
+              resource_id: resourceId
+            }]);
+
+          if (insErr) {
+            // Catch unique constraint violation (23505) gracefully
+            if (insErr.code === '23505') {
+              isLiked = true;
+            } else {
+              throw new Error(insErr.message);
+            }
+          } else {
+            isLiked = true;
+          }
         }
+
+        // Fetch atomic synchronized like_count from database
+        const { data: resRow } = await supabase
+          .from('resources')
+          .select('like_count')
+          .eq('id', resourceId)
+          .single();
+
+        return {
+          liked: isLiked,
+          likeCount: resRow?.like_count ?? 0
+        };
       }
-
-      // Fetch atomic synchronized like_count from database
-      const { data: resRow } = await supabase
-        .from('resources')
-        .select('like_count')
-        .eq('id', resourceId)
-        .single();
-
-      return {
-        liked: isLiked,
-        likeCount: resRow?.like_count ?? 0
-      };
     }
 
     // Fallback: LocalStorage Mock Engine

@@ -15,15 +15,15 @@ export const authService = {
         .ilike('username', cleanUsername)
         .maybeSingle();
 
-      if (error || !user) {
+      if (error && error.code === 'PGRST205') {
+        console.warn('[authService] Supabase tables not migrated yet. Falling back to local storage.');
+      } else if (error || !user) {
         throw new Error('User account not found. Please check your username.');
-      }
-
-      if (user.status === 'DISABLED') {
+      } else if (user.status === 'DISABLED') {
         throw new Error('This account has been disabled by the administrator.');
+      } else {
+        return mapProfileFromDb(user);
       }
-
-      return mapProfileFromDb(user);
     }
 
     // Fallback: LocalStorage Mock Engine
