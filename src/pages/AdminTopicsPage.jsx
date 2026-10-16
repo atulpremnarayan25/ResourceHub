@@ -34,6 +34,13 @@ export const AdminTopicsPage = () => {
     loadTopics();
   }, []);
 
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(''), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
   const handleCreateTopic = async (e) => {
     e.preventDefault();
     if (!name.trim()) {

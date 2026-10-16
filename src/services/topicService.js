@@ -105,16 +105,19 @@ export const topicService = {
         .single();
 
       if (error) {
-        if (error.code === '23505') {
+        if (error.code === 'PGRST205') {
+          console.warn('[topicService] Supabase tables not migrated yet. Falling back to local storage.');
+        } else if (error.code === '23505') {
           throw new Error(`A topic named "${trimmedName}" already exists.`);
+        } else {
+          throw new Error(error.message);
         }
-        throw new Error(error.message);
+      } else {
+        return {
+          ...mapTopicFromDb(data),
+          resourceCount: 0
+        };
       }
-
-      return {
-        ...mapTopicFromDb(data),
-        resourceCount: 0
-      };
     }
 
     // Fallback: LocalStorage Mock Engine
@@ -152,13 +155,16 @@ export const topicService = {
         .eq('id', id);
 
       if (error) {
-        // PostgreSQL Foreign Key Violation (23503)
-        if (error.code === '23503') {
+        if (error.code === 'PGRST205') {
+          console.warn('[topicService] Supabase tables not migrated yet. Falling back to local storage.');
+        } else if (error.code === '23503') {
           throw new Error('Cannot delete topic with active resources. Delete or reassign resources first.');
+        } else {
+          throw new Error(error.message);
         }
-        throw new Error(error.message);
+      } else {
+        return true;
       }
-      return true;
     }
 
     // Fallback: LocalStorage Mock Engine

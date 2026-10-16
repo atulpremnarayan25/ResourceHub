@@ -13,21 +13,21 @@ export const TopicsPage = () => {
   const [error, setError] = useState('');
   const { role } = useAuth();
 
-  const fetchTopics = async (query = '') => {
+  const fetchTopics = async (query = '', isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) setLoading(true);
       setError('');
       const list = await topicService.getTopics(query);
       setTopics(list);
     } catch (err) {
       setError(err.message || 'Failed to load topics.');
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTopics(searchQuery);
+    fetchTopics(searchQuery, topics.length === 0);
   }, [searchQuery]);
 
   return (

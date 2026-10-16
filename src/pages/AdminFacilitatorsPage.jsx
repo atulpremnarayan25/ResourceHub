@@ -32,6 +32,13 @@ export const AdminFacilitatorsPage = () => {
     loadFacilitators();
   }, []);
 
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(''), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
   const handleCreateFacilitator = async (e) => {
     e.preventDefault();
     if (!username.trim() || !name.trim()) {

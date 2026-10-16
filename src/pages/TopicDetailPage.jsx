@@ -20,9 +20,9 @@ export const TopicDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadTopicAndResources = async () => {
+  const loadTopicAndResources = async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) setLoading(true);
       setError('');
       const [tData, rList, likes] = await Promise.all([
         topicService.getTopicById(topicId),
@@ -35,12 +35,12 @@ export const TopicDetailPage = () => {
     } catch (err) {
       setError(err.message || 'Failed to load topic details.');
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadTopicAndResources();
+    loadTopicAndResources(!topic);
   }, [topicId, fileTypeFilter, searchQuery]);
 
   const handleToggleLike = async (resourceId) => {

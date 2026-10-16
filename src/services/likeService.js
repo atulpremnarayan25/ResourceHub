@@ -15,10 +15,15 @@ export const likeService = {
         .eq('student_id', studentId);
 
       if (error) {
-        console.error('Error fetching likes:', error);
-        return [];
+        if (error.code === 'PGRST205') {
+          console.warn('[likeService] Supabase tables not migrated yet. Falling back to local storage.');
+        } else {
+          console.error('Error fetching likes:', error);
+          return [];
+        }
+      } else {
+        return (data || []).map((l) => l.resource_id);
       }
-      return (data || []).map((l) => l.resource_id);
     }
 
     // Fallback: LocalStorage Mock Engine
@@ -42,8 +47,15 @@ export const likeService = {
         .eq('resource_id', resourceId)
         .maybeSingle();
 
-      if (error) return false;
-      return Boolean(data);
+      if (error) {
+        if (error.code === 'PGRST205') {
+          console.warn('[likeService] Supabase tables not migrated yet. Falling back to local storage.');
+        } else {
+          return false;
+        }
+      } else {
+        return Boolean(data);
+      }
     }
 
     // Fallback: LocalStorage Mock Engine
