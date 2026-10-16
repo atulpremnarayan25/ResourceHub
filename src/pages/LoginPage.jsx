@@ -169,7 +169,7 @@ export const LoginPage = () => {
         >
           <div>
             <div><strong>Username:</strong> <code>admin</code></div>
-            <div style={{ marginTop: '2px' }}><strong>Password:</strong> <code>atul1234</code></div>
+            <div style={{ marginTop: '2px' }}><strong>Password:</strong> <span style={{ letterSpacing: '2px', color: 'var(--color-text-muted)' }}>••••••••</span></div>
           </div>
           <button
             type="button"

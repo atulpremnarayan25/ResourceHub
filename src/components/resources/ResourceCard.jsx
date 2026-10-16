@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Eye, Heart, Trash2, User, Clock, FileText } from 'lucide-react';
 import { formatTimestamp } from '../../utils/namingConvention';
+import { isSafeUrl, sanitizeFilename } from '../../utils/security';
 import { FilePreviewModal } from './FilePreviewModal';
 import { useAuth } from '../../context/AuthContext';
 
@@ -34,10 +35,10 @@ export const ResourceCard = ({
   };
 
   const handleDownload = () => {
-    if (resource.fileUrl) {
+    if (isSafeUrl(resource.fileUrl)) {
       const a = document.createElement('a');
       a.href = resource.fileUrl;
-      a.download = resource.storedFilename || resource.originalFilename;
+      a.download = sanitizeFilename(resource.storedFilename || resource.originalFilename);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

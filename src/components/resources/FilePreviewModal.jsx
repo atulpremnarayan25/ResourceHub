@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { X, Download, FileText, ExternalLink } from 'lucide-react';
+import { isSafeUrl, sanitizeFilename } from '../../utils/security';
 
 export const FilePreviewModal = ({ resource, isOpen, onClose }) => {
   useEffect(() => {
@@ -19,12 +20,13 @@ export const FilePreviewModal = ({ resource, isOpen, onClose }) => {
   if (!isOpen || !resource) return null;
 
   const isPdf = resource.fileType.toUpperCase() === 'PDF';
+  const hasSafeUrl = isSafeUrl(resource.fileUrl);
 
   const handleDownload = () => {
-    if (resource.fileUrl) {
+    if (hasSafeUrl) {
       const a = document.createElement('a');
       a.href = resource.fileUrl;
-      a.download = resource.storedFilename || resource.originalFilename;
+      a.download = sanitizeFilename(resource.storedFilename || resource.originalFilename);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -66,13 +68,20 @@ export const FilePreviewModal = ({ resource, isOpen, onClose }) => {
         <div className="modal-body" style={{ padding: 'var(--space-4)' }}>
           {isPdf ? (
             <div style={{ width: '100%', height: '560px', backgroundColor: '#f1f5f9', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-              <iframe
-                src={`${resource.fileUrl}#toolbar=0`}
-                title={resource.title}
-                width="100%"
-                height="100%"
-                style={{ border: 'none' }}
-              />
+              {hasSafeUrl ? (
+                <iframe
+                  src={`${resource.fileUrl}#toolbar=0`}
+                  title={resource.title}
+                  width="100%"
+                  height="100%"
+                  sandbox="allow-scripts allow-downloads"
+                  style={{ border: 'none' }}
+                />
+              ) : (
+                <div className="state-box" style={{ padding: 'var(--space-12) var(--space-6)' }}>
+                  <p className="state-description">Direct preview is unavailable for this resource protocol.</p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="state-box" style={{ padding: 'var(--space-12) var(--space-6)' }}>
@@ -112,7 +121,7 @@ export const FilePreviewModal = ({ resource, isOpen, onClose }) => {
         </div>
 
         <div className="modal-footer">
-          {isPdf && resource.fileUrl && (
+          {isPdf && hasSafeUrl && (
             <a
               href={resource.fileUrl}
               target="_blank"

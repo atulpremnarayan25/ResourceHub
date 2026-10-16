@@ -1,8 +1,11 @@
 import React from 'react';
 import { RotateCcw, ShieldCheck } from 'lucide-react';
 import { resetDatabase } from '../../services/storage';
+import { useAuth } from '../../context/AuthContext';
 
 export const Footer = () => {
+  const { currentUser } = useAuth();
+
   const handleReset = () => {
     if (window.confirm('Reset all topics, resources, likes, and accounts to the initial sample seed data?')) {
       resetDatabase();
@@ -22,17 +25,19 @@ export const Footer = () => {
           </p>
         </div>
 
-        <div className="footer-actions">
-          <button
-            type="button"
-            onClick={handleReset}
-            className="btn btn-secondary btn-sm"
-            title="Reset simulated database to pristine sample data"
-          >
-            <RotateCcw size={14} />
-            <span>Reset Sample Data</span>
-          </button>
-        </div>
+        {currentUser?.role === 'ADMIN' && (
+          <div className="footer-actions">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="btn btn-secondary btn-sm"
+              title="Reset simulated database to pristine sample data (Administrator only)"
+            >
+              <RotateCcw size={14} />
+              <span>Reset Sample Data</span>
+            </button>
+          </div>
+        )}
       </div>
     </footer>
   );

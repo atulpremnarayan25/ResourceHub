@@ -1,6 +1,20 @@
 import { getDatabase } from './storage';
 import { supabase, isSupabaseConfigured, mapProfileFromDb } from '../lib/supabase';
 
+// SHA-256 hash of authorized administrator password ('atul1234')
+const ADMIN_PASSWORD_HASH = '1f3d10477ff4b02ceeb0e3b177e52d338319db885cbb1d6402a39043a6023483';
+
+const computeHash = async (text) => {
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const encoded = new TextEncoder().encode(text);
+    const buffer = await crypto.subtle.digest('SHA-256', encoded);
+    return Array.from(new Uint8Array(buffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+  return text;
+};
+
 export const authService = {
   async login(username, password) {
     if (!username || !password) {
@@ -8,10 +22,11 @@ export const authService = {
     }
 
     const cleanUsername = username.trim().toLowerCase();
+    const passwordHash = await computeHash(password);
 
-    // Enforce Admin credentials with designated password atul1234
+    // Enforce Admin credentials via cryptographic hash comparison
     if (cleanUsername === 'admin' || cleanUsername === 'admin_dean') {
-      if (password !== 'atul1234') {
+      if (passwordHash !== ADMIN_PASSWORD_HASH) {
         throw new Error('Incorrect password. Please enter the valid admin password.');
       }
       return {

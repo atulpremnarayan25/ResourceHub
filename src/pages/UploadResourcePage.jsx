@@ -4,6 +4,7 @@ import { UploadCloud, ArrowLeft, FileText, CheckCircle2, AlertCircle } from 'luc
 import { topicService } from '../services/topicService';
 import { resourceService } from '../services/resourceService';
 import { generateStoredFilename } from '../utils/namingConvention';
+import { validateFileHeader } from '../utils/security';
 import { useAuth } from '../context/AuthContext';
 import { AlertBanner } from '../components/common/UIFeedback';
 
@@ -46,7 +47,7 @@ export const UploadResourcePage = () => {
     ? generateStoredFilename(currentUser.username, title || 'resource-title', cleanExt)
     : '';
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -62,6 +63,15 @@ export const UploadResourcePage = () => {
 
     if (file.size > 15 * 1024 * 1024) {
       setError('File size exceeds the 15 MB limit. Please select a smaller file.');
+      setSelectedFile(null);
+      e.target.value = '';
+      return;
+    }
+
+    // Defensive binary inspection: verify magic bytes before accepting file
+    const headerCheck = await validateFileHeader(file);
+    if (!headerCheck.valid) {
+      setError(`Security rejection: ${headerCheck.reason}`);
       setSelectedFile(null);
       e.target.value = '';
       return;

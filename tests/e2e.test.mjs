@@ -110,7 +110,7 @@ async function runTests() {
     const oneClickAdmin = page.locator('button:has-text("1-Click Sign In as Administrator")');
     await oneClickAdmin.click();
     await page.waitForURL(url => url.pathname.includes('/admin'));
-    assert(await page.locator('.badge-role:has-text("ADMIN")').isVisible(), '1-Click admin sign in should log in as Admin');
+    assert(await page.locator('.header-actions .badge-role:has-text("ADMIN")').isVisible(), '1-Click admin sign in should log in as Admin');
     console.log('✓ Test 5 passed: Sign out, route guards, and 1-click admin login verified');
 
     console.log('\n🎉 ALL 5 PLAYWRIGHT E2E TESTS PASSED SUCCESSFULLY!');
