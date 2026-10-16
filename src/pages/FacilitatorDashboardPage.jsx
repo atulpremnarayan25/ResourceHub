@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { UploadCloud, FileText, Heart, Layers, ArrowRight, User } from 'lucide-react';
+import { UploadCloud, FileText, Heart, Layers, ArrowRight } from 'lucide-react';
 import { resourceService } from '../services/resourceService';
 import { useAuth } from '../context/AuthContext';
 import { ResourceCard } from '../components/resources/ResourceCard';

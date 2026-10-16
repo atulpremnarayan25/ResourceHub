@@ -23,6 +23,18 @@ export const supabase = isSupabaseConfigured
   : null;
 
 /**
+ * Checks if a Supabase PostgREST error represents a missing table (unmigrated database).
+ */
+export const isTableMissingError = (error) => Boolean(error && error.code === 'PGRST205');
+
+/**
+ * Standardizes console warnings when falling back to localStorage.
+ */
+export const logFallbackWarning = (serviceName) => {
+  console.warn(`[${serviceName}] Supabase tables not migrated yet. Falling back to local storage.`);
+};
+
+/**
  * Maps Postgres snake_case resource row to frontend camelCase contract
  */
 export const mapResourceFromDb = (row) => ({

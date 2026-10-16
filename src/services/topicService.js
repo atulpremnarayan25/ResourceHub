@@ -1,59 +1,44 @@
 import { getDatabase, saveDatabase } from './storage';
-import { supabase, isSupabaseConfigured, mapTopicFromDb } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, mapTopicFromDb, isTableMissingError, logFallbackWarning } from '../lib/supabase';
+
+const filterTopics = (list, searchQuery) => {
+  if (!searchQuery || !searchQuery.trim()) return list;
+  const q = searchQuery.toLowerCase().trim();
+  return list.filter(
+    (t) =>
+      t.name.toLowerCase().includes(q) ||
+      (t.code && t.code.toLowerCase().includes(q)) ||
+      (t.description && t.description.toLowerCase().includes(q))
+  );
+};
 
 export const topicService = {
   async getTopics(searchQuery = '') {
     if (isSupabaseConfigured) {
-      let query = supabase
+      const { data, error } = await supabase
         .from('topics')
         .select('*, resources(count)')
         .order('created_at', { ascending: true });
 
-      const { data, error } = await query;
       if (error) {
-        if (error.code === 'PGRST205') {
-          console.warn('[topicService] Supabase tables not migrated yet. Falling back to local storage.');
+        if (isTableMissingError(error)) {
+          logFallbackWarning('topicService');
         } else {
           throw new Error(error.message);
         }
       } else {
-        let list = (data || []).map(mapTopicFromDb);
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase().trim();
-          list = list.filter(
-            (t) =>
-              t.name.toLowerCase().includes(q) ||
-              (t.code && t.code.toLowerCase().includes(q)) ||
-              (t.description && t.description.toLowerCase().includes(q))
-          );
-        }
-        return list;
+        return filterTopics((data || []).map(mapTopicFromDb), searchQuery);
       }
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 120));
     const db = getDatabase();
+    const list = db.topics.map((topic) => ({
+      ...topic,
+      resourceCount: db.resources.filter((r) => r.topicId === topic.id).length
+    }));
 
-    let list = db.topics.map((topic) => {
-      const resourceCount = db.resources.filter((r) => r.topicId === topic.id).length;
-      return {
-        ...topic,
-        resourceCount
-      };
-    });
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(
-        (t) =>
-          t.name.toLowerCase().includes(q) ||
-          (t.code && t.code.toLowerCase().includes(q)) ||
-          (t.description && t.description.toLowerCase().includes(q))
-      );
-    }
-
-    return list;
+    return filterTopics(list, searchQuery);
   },
 
   async getTopicById(id) {
@@ -64,8 +49,8 @@ export const topicService = {
         .eq('id', id)
         .single();
 
-      if (error && error.code === 'PGRST205') {
-        console.warn('[topicService] Supabase tables not migrated yet. Falling back to local storage.');
+      if (error && isTableMissingError(error)) {
+        logFallbackWarning('topicService');
       } else if (error || !data) {
         throw new Error('Topic not found.');
       } else {
@@ -74,16 +59,14 @@ export const topicService = {
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 100));
     const db = getDatabase();
     const topic = db.topics.find((t) => t.id === id);
     if (!topic) {
       throw new Error('Topic not found.');
     }
-    const resourceCount = db.resources.filter((r) => r.topicId === topic.id).length;
     return {
       ...topic,
-      resourceCount
+      resourceCount: db.resources.filter((r) => r.topicId === topic.id).length
     };
   },
 
@@ -105,8 +88,8 @@ export const topicService = {
         .single();
 
       if (error) {
-        if (error.code === 'PGRST205') {
-          console.warn('[topicService] Supabase tables not migrated yet. Falling back to local storage.');
+        if (isTableMissingError(error)) {
+          logFallbackWarning('topicService');
         } else if (error.code === '23505') {
           throw new Error(`A topic named "${trimmedName}" already exists.`);
         } else {
@@ -121,9 +104,7 @@ export const topicService = {
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 150));
     const db = getDatabase();
-
     const exists = db.topics.some(
       (t) => t.name.toLowerCase() === trimmedName.toLowerCase()
     );
@@ -155,8 +136,8 @@ export const topicService = {
         .eq('id', id);
 
       if (error) {
-        if (error.code === 'PGRST205') {
-          console.warn('[topicService] Supabase tables not migrated yet. Falling back to local storage.');
+        if (isTableMissingError(error)) {
+          logFallbackWarning('topicService');
         } else if (error.code === '23503') {
           throw new Error('Cannot delete topic with active resources. Delete or reassign resources first.');
         } else {
@@ -168,9 +149,7 @@ export const topicService = {
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 150));
     const db = getDatabase();
-
     const hasResources = db.resources.some((r) => r.topicId === id);
     if (hasResources) {
       throw new Error('Cannot delete topic with active resources. Delete or reassign resources first.');

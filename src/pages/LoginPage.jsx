@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, LogIn, Lock, ShieldCheck, KeyRound } from 'lucide-react';
+import { GraduationCap, LogIn, ShieldCheck, KeyRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
 import { AlertBanner } from '../components/common/UIFeedback';

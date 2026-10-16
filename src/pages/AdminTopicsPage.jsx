@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { PlusCircle, Trash2, Layers, BookOpen, AlertCircle, X, Check } from 'lucide-react';
+import { PlusCircle, Trash2, Layers, X, Check } from 'lucide-react';
 import { topicService } from '../services/topicService';
 import { LoadingSpinner, EmptyState, AlertBanner } from '../components/common/UIFeedback';
+
+const initialTopicForm = { name: '', code: '', description: '' };
 
 export const AdminTopicsPage = () => {
   const [topics, setTopics] = useState([]);
@@ -12,10 +14,13 @@ export const AdminTopicsPage = () => {
 
   // Create Modal state
   const [modalOpen, setModalOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [code, setCode] = useState('');
-  const [description, setDescription] = useState('');
+  const [formData, setFormData] = useState(initialTopicForm);
   const [submitting, setSubmitting] = useState(false);
+
+  const resetForm = () => {
+    setFormData(initialTopicForm);
+    setModalOpen(false);
+  };
 
   const loadTopics = async () => {
     try {
@@ -34,16 +39,9 @@ export const AdminTopicsPage = () => {
     loadTopics();
   }, []);
 
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => setSuccess(''), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [success]);
-
   const handleCreateTopic = async (e) => {
     e.preventDefault();
-    if (!name.trim()) {
+    if (!formData.name.trim()) {
       setError('Topic name is required.');
       return;
     }
@@ -52,13 +50,10 @@ export const AdminTopicsPage = () => {
       setSubmitting(true);
       setError('');
       setSuccess('');
-      const created = await topicService.createTopic({ name, code, description });
+      const created = await topicService.createTopic(formData);
       setTopics((prev) => [...prev, created]);
       setSuccess(`Topic "${created.name}" created successfully.`);
-      setName('');
-      setCode('');
-      setDescription('');
-      setModalOpen(false);
+      resetForm();
     } catch (err) {
       setError(err.message || 'Failed to create topic.');
     } finally {
@@ -105,7 +100,7 @@ export const AdminTopicsPage = () => {
       </div>
 
       <AlertBanner type="danger" message={error} onClose={() => setError('')} />
-      <AlertBanner type="success" message={success} onClose={() => setSuccess('')} />
+      <AlertBanner type="success" message={success} onClose={() => setSuccess('')} autoDismiss={4000} />
 
       {/* Topics Table Card */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -187,7 +182,7 @@ export const AdminTopicsPage = () => {
         <div
           className="modal-overlay"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setModalOpen(false);
+            if (e.target === e.currentTarget) resetForm();
           }}
           role="dialog"
           aria-modal="true"
@@ -196,7 +191,7 @@ export const AdminTopicsPage = () => {
             <div className="modal-header">
               <h2 className="modal-title">Create Academic Topic</h2>
               <button
-                onClick={() => setModalOpen(false)}
+                onClick={resetForm}
                 className="btn btn-ghost btn-sm"
                 style={{ padding: '4px', borderRadius: 'var(--radius-pill)' }}
                 aria-label="Close"
@@ -216,8 +211,8 @@ export const AdminTopicsPage = () => {
                     type="text"
                     className="form-input"
                     placeholder="e.g. CS201, CS303"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
+                    value={formData.code}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, code: e.target.value }))}
                     disabled={submitting}
                   />
                 </div>
@@ -231,8 +226,8 @@ export const AdminTopicsPage = () => {
                     type="text"
                     className="form-input"
                     placeholder="e.g. Cloud Infrastructure and Microservices"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    value={formData.name}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                     required
                     disabled={submitting}
                   />
@@ -247,8 +242,8 @@ export const AdminTopicsPage = () => {
                     className="form-textarea"
                     rows={3}
                     placeholder="Curricular coverage, topics included, target learning outcomes..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    value={formData.description}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                     disabled={submitting}
                   />
                 </div>
@@ -257,7 +252,7 @@ export const AdminTopicsPage = () => {
               <div className="modal-footer">
                 <button
                   type="button"
-                  onClick={() => setModalOpen(false)}
+                  onClick={resetForm}
                   className="btn btn-secondary"
                   disabled={submitting}
                 >

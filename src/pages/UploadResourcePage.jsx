@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { UploadCloud, ArrowLeft, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { UploadCloud, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { topicService } from '../services/topicService';
 import { resourceService } from '../services/resourceService';
-import { generateStoredFilename } from '../utils/namingConvention';
+import { generateStoredFilename, formatTitleFromFilename } from '../utils/namingConvention';
 import { validateFileHeader } from '../utils/security';
 import { useAuth } from '../context/AuthContext';
 import { AlertBanner } from '../components/common/UIFeedback';
@@ -82,11 +82,7 @@ export const UploadResourcePage = () => {
 
     // If title is empty, prefill sensible title from original filename
     if (!title.trim()) {
-      const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-      const formattedTitle = nameWithoutExt
-        .replace(/[-_]+/g, ' ')
-        .replace(/\b\w/g, (c) => c.toUpperCase());
-      setTitle(formattedTitle);
+      setTitle(formatTitleFromFilename(file.name));
     }
   };
 

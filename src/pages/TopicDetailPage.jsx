@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Search, Filter, UploadCloud, BookOpen } from 'lucide-react';
+import { ArrowLeft, Search, UploadCloud, BookOpen } from 'lucide-react';
 import { topicService } from '../services/topicService';
 import { resourceService } from '../services/resourceService';
 import { likeService } from '../services/likeService';

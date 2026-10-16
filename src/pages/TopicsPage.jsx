@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, BookOpen, Layers, PlusCircle } from 'lucide-react';
+import { Search, BookOpen, PlusCircle } from 'lucide-react';
 import { topicService } from '../services/topicService';
 import { TopicCard } from '../components/topics/TopicCard';
 import { LoadingSpinner, EmptyState, AlertBanner } from '../components/common/UIFeedback';

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { X, Download, FileText, ExternalLink } from 'lucide-react';
-import { isSafeUrl, sanitizeFilename } from '../../utils/security';
+import { isSafeUrl, downloadFile } from '../../utils/security';
 
 export const FilePreviewModal = ({ resource, isOpen, onClose }) => {
   useEffect(() => {
@@ -23,16 +23,7 @@ export const FilePreviewModal = ({ resource, isOpen, onClose }) => {
   const hasSafeUrl = isSafeUrl(resource.fileUrl);
 
   const handleDownload = () => {
-    if (hasSafeUrl) {
-      const a = document.createElement('a');
-      a.href = resource.fileUrl;
-      a.download = sanitizeFilename(resource.storedFilename || resource.originalFilename);
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } else {
-      alert(`Initiating download for: ${resource.storedFilename}`);
-    }
+    downloadFile(resource.fileUrl, resource.storedFilename || resource.originalFilename);
   };
 
   return (

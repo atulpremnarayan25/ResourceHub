@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
-  UploadCloud,
-  Layers,
-  Users,
   LogOut,
   LogIn,
   Menu,
@@ -26,6 +23,22 @@ export const Header = () => {
 
   const closeMobile = () => setMobileMenuOpen(false);
 
+  const navItems = [
+    { to: '/topics', label: 'Topics' },
+    ...(role === 'FACILITATOR'
+      ? [
+          { to: '/facilitator/resources', label: 'My Resources' },
+          { to: '/facilitator/resources/new', label: 'Upload Resource' }
+        ]
+      : []),
+    ...(role === 'ADMIN'
+      ? [
+          { to: '/admin/topics', label: 'Manage Topics' },
+          { to: '/admin/facilitators', label: 'Manage Facilitators' }
+        ]
+      : [])
+  ];
+
   return (
     <header className="app-header">
       <div className="container header-container">
@@ -40,56 +53,16 @@ export const Header = () => {
         {/* Desktop Navigation */}
         <nav aria-label="Main Navigation">
           <ul className="nav-links">
-            <li>
-              <NavLink
-                to="/topics"
-                className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
-              >
-                Topics
-              </NavLink>
-            </li>
-
-            {role === 'FACILITATOR' && (
-              <>
-                <li>
-                  <NavLink
-                    to="/facilitator/resources"
-                    className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
-                  >
-                    My Resources
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/facilitator/resources/new"
-                    className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
-                  >
-                    Upload Resource
-                  </NavLink>
-                </li>
-              </>
-            )}
-
-            {role === 'ADMIN' && (
-              <>
-                <li>
-                  <NavLink
-                    to="/admin/topics"
-                    className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
-                  >
-                    Manage Topics
-                  </NavLink>
-                </li>
-                <li>
-                  <NavLink
-                    to="/admin/facilitators"
-                    className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
-                  >
-                    Manage Facilitators
-                  </NavLink>
-                </li>
-              </>
-            )}
+            {navItems.map((item) => (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
+                >
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
           </ul>
         </nav>
 
@@ -136,51 +109,16 @@ export const Header = () => {
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="mobile-menu-drawer">
-          <NavLink
-            to="/topics"
-            className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
-            onClick={closeMobile}
-          >
-            Topics
-          </NavLink>
-
-          {role === 'FACILITATOR' && (
-            <>
-              <NavLink
-                to="/facilitator/resources"
-                className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
-                onClick={closeMobile}
-              >
-                My Resources
-              </NavLink>
-              <NavLink
-                to="/facilitator/resources/new"
-                className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
-                onClick={closeMobile}
-              >
-                Upload Resource
-              </NavLink>
-            </>
-          )}
-
-          {role === 'ADMIN' && (
-            <>
-              <NavLink
-                to="/admin/topics"
-                className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
-                onClick={closeMobile}
-              >
-                Manage Topics
-              </NavLink>
-              <NavLink
-                to="/admin/facilitators"
-                className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
-                onClick={closeMobile}
-              >
-                Manage Facilitators
-              </NavLink>
-            </>
-          )}
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) => `nav-item-link ${isActive ? 'active' : ''}`}
+              onClick={closeMobile}
+            >
+              {item.label}
+            </NavLink>
+          ))}
         </div>
       )}
     </header>

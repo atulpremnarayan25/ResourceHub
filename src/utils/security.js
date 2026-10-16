@@ -27,6 +27,22 @@ export const sanitizeFilename = (filename) => {
 };
 
 /**
+ * Safely triggers download of an asset via client-side anchor element.
+ */
+export const downloadFile = (url, filename) => {
+  if (isSafeUrl(url)) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = sanitizeFilename(filename);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } else {
+    alert(`Initiating download for: ${filename}`);
+  }
+};
+
+/**
  * Inspects binary magic bytes of an uploaded file to verify file integrity.
  * Prevents disguised files (e.g., HTML/EXE renamed to .pdf) from executing.
  */

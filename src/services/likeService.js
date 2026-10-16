@@ -1,5 +1,5 @@
 import { getDatabase, saveDatabase } from './storage';
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, isTableMissingError, logFallbackWarning } from '../lib/supabase';
 
 export const likeService = {
   /**
@@ -15,8 +15,8 @@ export const likeService = {
         .eq('student_id', studentId);
 
       if (error) {
-        if (error.code === 'PGRST205') {
-          console.warn('[likeService] Supabase tables not migrated yet. Falling back to local storage.');
+        if (isTableMissingError(error)) {
+          logFallbackWarning('likeService');
         } else {
           console.error('Error fetching likes:', error);
           return [];
@@ -48,8 +48,8 @@ export const likeService = {
         .maybeSingle();
 
       if (error) {
-        if (error.code === 'PGRST205') {
-          console.warn('[likeService] Supabase tables not migrated yet. Falling back to local storage.');
+        if (isTableMissingError(error)) {
+          logFallbackWarning('likeService');
         } else {
           return false;
         }
@@ -82,8 +82,8 @@ export const likeService = {
         .eq('resource_id', resourceId)
         .maybeSingle();
 
-      if (fetchErr && fetchErr.code === 'PGRST205') {
-        console.warn('[likeService] Supabase tables not migrated yet. Falling back to local storage.');
+      if (fetchErr && isTableMissingError(fetchErr)) {
+        logFallbackWarning('likeService');
       } else if (fetchErr) {
         throw new Error(fetchErr.message);
       } else {
@@ -133,7 +133,6 @@ export const likeService = {
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 80));
     const db = getDatabase();
     const resource = db.resources.find((r) => r.id === resourceId);
     if (!resource) {

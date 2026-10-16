@@ -1,27 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { AlertCircle, CheckCircle, Info, Inbox } from 'lucide-react';
 
 export const LoadingSpinner = ({ text = 'Loading data...' }) => (
   <div className="state-box" style={{ padding: 'var(--space-8)' }} role="status" aria-live="polite">
-    <div
-      style={{
-        width: 32,
-        height: 32,
-        border: '3px solid var(--color-border-subtle)',
-        borderTopColor: 'var(--color-primary)',
-        borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
-        marginBottom: 'var(--space-3)'
-      }}
-    />
+    <div className="spinner" />
     <p style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', fontWeight: 500 }}>
       {text}
     </p>
-    <style>{`
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    `}</style>
   </div>
 );
 
@@ -41,7 +26,13 @@ export const EmptyState = ({
   </div>
 );
 
-export const AlertBanner = ({ type = 'info', message, onClose = null }) => {
+export const AlertBanner = ({ type = 'info', message, onClose = null, autoDismiss = 0 }) => {
+  useEffect(() => {
+    if (!message || !onClose || !autoDismiss) return;
+    const timer = setTimeout(onClose, autoDismiss);
+    return () => clearTimeout(timer);
+  }, [message, onClose, autoDismiss]);
+
   if (!message) return null;
 
   const icons = {

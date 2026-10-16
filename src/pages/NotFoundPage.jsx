@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { HelpCircle, Home, ArrowLeft } from 'lucide-react';
+import { HelpCircle, Home } from 'lucide-react';
 
 export const NotFoundPage = () => {
   return (

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Power, Trash2, X, Check, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Users, UserPlus, Power, Trash2, X, Check } from 'lucide-react';
 import { adminService } from '../services/adminService';
 import { LoadingSpinner, EmptyState, AlertBanner } from '../components/common/UIFeedback';
+
+const initialFacForm = { username: '', name: '' };
 
 export const AdminFacilitatorsPage = () => {
   const [facilitators, setFacilitators] = useState([]);
@@ -11,9 +13,13 @@ export const AdminFacilitatorsPage = () => {
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
-  const [username, setUsername] = useState('');
-  const [name, setName] = useState('');
+  const [formData, setFormData] = useState(initialFacForm);
   const [submitting, setSubmitting] = useState(false);
+
+  const resetForm = () => {
+    setFormData(initialFacForm);
+    setModalOpen(false);
+  };
 
   const loadFacilitators = async () => {
     try {
@@ -32,16 +38,9 @@ export const AdminFacilitatorsPage = () => {
     loadFacilitators();
   }, []);
 
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => setSuccess(''), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [success]);
-
   const handleCreateFacilitator = async (e) => {
     e.preventDefault();
-    if (!username.trim() || !name.trim()) {
+    if (!formData.username.trim() || !formData.name.trim()) {
       setError('Username and full name are required.');
       return;
     }
@@ -50,12 +49,10 @@ export const AdminFacilitatorsPage = () => {
       setSubmitting(true);
       setError('');
       setSuccess('');
-      const created = await adminService.createFacilitator({ username, name });
+      const created = await adminService.createFacilitator(formData);
       setFacilitators((prev) => [...prev, created]);
       setSuccess(`Facilitator "${created.name}" created with username "${created.username}".`);
-      setUsername('');
-      setName('');
-      setModalOpen(false);
+      resetForm();
     } catch (err) {
       setError(err.message || 'Failed to create facilitator.');
     } finally {
@@ -116,7 +113,7 @@ export const AdminFacilitatorsPage = () => {
       </div>
 
       <AlertBanner type="danger" message={error} onClose={() => setError('')} />
-      <AlertBanner type="success" message={success} onClose={() => setSuccess('')} />
+      <AlertBanner type="success" message={success} onClose={() => setSuccess('')} autoDismiss={4000} />
 
       {/* Facilitator Table Card */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -203,7 +200,7 @@ export const AdminFacilitatorsPage = () => {
         <div
           className="modal-overlay"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setModalOpen(false);
+            if (e.target === e.currentTarget) resetForm();
           }}
           role="dialog"
           aria-modal="true"
@@ -212,7 +209,7 @@ export const AdminFacilitatorsPage = () => {
             <div className="modal-header">
               <h2 className="modal-title">Provision Facilitator Account</h2>
               <button
-                onClick={() => setModalOpen(false)}
+                onClick={resetForm}
                 className="btn btn-ghost btn-sm"
                 style={{ padding: '4px', borderRadius: 'var(--radius-pill)' }}
                 aria-label="Close"
@@ -232,8 +229,8 @@ export const AdminFacilitatorsPage = () => {
                     type="text"
                     className="form-input"
                     placeholder="e.g. Dr. Kavita Raman"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    value={formData.name}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                     required
                     disabled={submitting}
                   />
@@ -249,8 +246,8 @@ export const AdminFacilitatorsPage = () => {
                     type="text"
                     className="form-input"
                     placeholder="e.g. kavita_raman"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    value={formData.username}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
                     required
                     disabled={submitting}
                   />
@@ -261,7 +258,7 @@ export const AdminFacilitatorsPage = () => {
               <div className="modal-footer">
                 <button
                   type="button"
-                  onClick={() => setModalOpen(false)}
+                  onClick={resetForm}
                   className="btn btn-secondary"
                   disabled={submitting}
                 >

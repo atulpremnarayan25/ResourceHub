@@ -1,5 +1,5 @@
 import { getDatabase, saveDatabase } from './storage';
-import { supabase, isSupabaseConfigured, mapProfileFromDb } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, mapProfileFromDb, isTableMissingError, logFallbackWarning } from '../lib/supabase';
 
 export const adminService = {
   async getFacilitators() {
@@ -10,10 +10,12 @@ export const adminService = {
         .eq('role', 'FACILITATOR')
         .order('created_at', { ascending: true });
 
-      if (fErr && fErr.code === 'PGRST205') {
-        console.warn('[adminService] Supabase tables not migrated yet. Falling back to local storage.');
-      } else if (fErr) {
-        throw new Error(fErr.message);
+      if (fErr) {
+        if (isTableMissingError(fErr)) {
+          logFallbackWarning('adminService');
+        } else {
+          throw new Error(fErr.message);
+        }
       } else {
         const { data: resources, error: rErr } = await supabase
           .from('resources')
@@ -34,7 +36,6 @@ export const adminService = {
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 100));
     const db = getDatabase();
 
     const facilitators = db.users
@@ -72,13 +73,14 @@ export const adminService = {
         .select()
         .single();
 
-      if (error && error.code === 'PGRST205') {
-        console.warn('[adminService] Supabase tables not migrated yet. Falling back to local storage.');
-      } else if (error) {
-        if (error.code === '23505') {
+      if (error) {
+        if (isTableMissingError(error)) {
+          logFallbackWarning('adminService');
+        } else if (error.code === '23505') {
           throw new Error(`Username "${cleanUsername}" is already taken.`);
+        } else {
+          throw new Error(error.message);
         }
-        throw new Error(error.message);
       } else {
         return {
           ...mapProfileFromDb(data),
@@ -88,7 +90,6 @@ export const adminService = {
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 150));
     const db = getDatabase();
 
     const exists = db.users.some(
@@ -123,8 +124,8 @@ export const adminService = {
         .eq('id', id)
         .single();
 
-      if (fetchErr && fetchErr.code === 'PGRST205') {
-        console.warn('[adminService] Supabase tables not migrated yet. Falling back to local storage.');
+      if (fetchErr && isTableMissingError(fetchErr)) {
+        logFallbackWarning('adminService');
       } else if (fetchErr || !current) {
         throw new Error('Facilitator not found.');
       } else {
@@ -143,7 +144,6 @@ export const adminService = {
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 120));
     const db = getDatabase();
     const facilitator = db.users.find((u) => u.id === id && u.role === 'FACILITATOR');
 
@@ -165,8 +165,8 @@ export const adminService = {
         .eq('id', id)
         .single();
 
-      if (fetchErr && fetchErr.code === 'PGRST205') {
-        console.warn('[adminService] Supabase tables not migrated yet. Falling back to local storage.');
+      if (fetchErr && isTableMissingError(fetchErr)) {
+        logFallbackWarning('adminService');
       } else if (fetchErr || !fac) {
         throw new Error('Facilitator not found.');
       } else {
@@ -193,7 +193,6 @@ export const adminService = {
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 150));
     const db = getDatabase();
     const facilitator = db.users.find((u) => u.id === id && u.role === 'FACILITATOR');
 

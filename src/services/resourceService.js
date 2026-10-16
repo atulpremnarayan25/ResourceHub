@@ -1,6 +1,17 @@
 import { getDatabase, saveDatabase } from './storage';
 import { generateStoredFilename } from '../utils/namingConvention';
-import { supabase, isSupabaseConfigured, mapResourceFromDb } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, mapResourceFromDb, isTableMissingError, logFallbackWarning } from '../lib/supabase';
+
+const filterResources = (list, searchQuery) => {
+  if (!searchQuery || !searchQuery.trim()) return list;
+  const q = searchQuery.toLowerCase().trim();
+  return list.filter(
+    (r) =>
+      r.title.toLowerCase().includes(q) ||
+      (r.storedFilename && r.storedFilename.toLowerCase().includes(q)) ||
+      (r.uploaderName && r.uploaderName.toLowerCase().includes(q))
+  );
+};
 
 export const resourceService = {
   async getResources({ topicId, uploader, searchQuery, fileType } = {}) {
@@ -16,28 +27,17 @@ export const resourceService = {
 
       const { data, error } = await query;
       if (error) {
-        if (error.code === 'PGRST205') {
-          console.warn('[resourceService] Supabase tables not migrated yet. Falling back to local storage.');
+        if (isTableMissingError(error)) {
+          logFallbackWarning('resourceService');
         } else {
           throw new Error(error.message);
         }
       } else {
-        let list = (data || []).map(mapResourceFromDb);
-        if (searchQuery && searchQuery.trim()) {
-          const q = searchQuery.toLowerCase().trim();
-          list = list.filter(
-            (r) =>
-              r.title.toLowerCase().includes(q) ||
-              (r.storedFilename && r.storedFilename.toLowerCase().includes(q)) ||
-              (r.uploaderName && r.uploaderName.toLowerCase().includes(q))
-          );
-        }
-        return list;
+        return filterResources((data || []).map(mapResourceFromDb), searchQuery);
       }
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 100));
     const db = getDatabase();
     let list = [...db.resources];
 
@@ -53,15 +53,7 @@ export const resourceService = {
       list = list.filter((r) => r.fileType.toUpperCase() === fileType.toUpperCase());
     }
 
-    if (searchQuery && searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      list = list.filter(
-        (r) =>
-          r.title.toLowerCase().includes(q) ||
-          (r.storedFilename && r.storedFilename.toLowerCase().includes(q)) ||
-          (r.uploaderName && r.uploaderName.toLowerCase().includes(q))
-      );
-    }
+    list = filterResources(list, searchQuery);
 
     // Attach topic name for cross-topic listings
     list = list.map((r) => {
@@ -90,7 +82,6 @@ export const resourceService = {
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 80));
     const db = getDatabase();
     const resource = db.resources.find((r) => r.id === id);
     if (!resource) {
@@ -169,8 +160,8 @@ export const resourceService = {
         .single();
 
       if (insertError) {
-        if (insertError.code === 'PGRST205') {
-          console.warn('[resourceService] Supabase tables not migrated yet. Falling back to local storage.');
+        if (isTableMissingError(insertError)) {
+          logFallbackWarning('resourceService');
         } else {
           // Rollback uploaded file if metadata insertion fails
           await supabase.storage.from('resources').remove([storedFilename]);
@@ -182,7 +173,6 @@ export const resourceService = {
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 200));
     const db = getDatabase();
     const topic = db.topics.find((t) => t.id === topicId);
     if (!topic) throw new Error('Selected topic does not exist.');
@@ -223,8 +213,8 @@ export const resourceService = {
         .eq('id', id)
         .single();
 
-      if (fetchErr && fetchErr.code === 'PGRST205') {
-        console.warn('[resourceService] Supabase tables not migrated yet. Falling back to local storage.');
+      if (fetchErr && isTableMissingError(fetchErr)) {
+        logFallbackWarning('resourceService');
       } else if (fetchErr || !resource) {
         throw new Error('Resource not found.');
       } else {
@@ -252,7 +242,6 @@ export const resourceService = {
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 150));
     const db = getDatabase();
     const resource = db.resources.find((r) => r.id === id);
 

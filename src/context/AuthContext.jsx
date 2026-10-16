@@ -8,22 +8,12 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_AUTH);
-      if (saved === '__LOGGED_OUT__') {
-        return null;
-      }
       if (saved) {
-        const parsed = JSON.parse(saved);
-        // Only retain valid admin or provisioned accounts, wipe legacy mock users
-        if (parsed.username === 'student_arun' || parsed.username === 'prof_sharma' || parsed.username === 'student_ananya') {
-          localStorage.removeItem(STORAGE_KEY_AUTH);
-          return null;
-        }
-        return parsed;
+        return JSON.parse(saved);
       }
     } catch (e) {
       console.warn('Failed to parse saved user from storage:', e);
     }
-    // Clean initial state starts unauthenticated
     return null;
   });
 
@@ -32,7 +22,7 @@ export const AuthProvider = ({ children }) => {
       if (currentUser) {
         localStorage.setItem(STORAGE_KEY_AUTH, JSON.stringify(currentUser));
       } else {
-        localStorage.setItem(STORAGE_KEY_AUTH, '__LOGGED_OUT__');
+        localStorage.removeItem(STORAGE_KEY_AUTH);
       }
     } catch (e) {
       console.warn('Failed to persist user to storage:', e);

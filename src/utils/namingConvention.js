@@ -9,15 +9,9 @@ export const generateStoredFilename = (username, title, extension, timestamp = n
     .replace(/[^a-z0-9_]/g, '');
 
   const dateObj = timestamp instanceof Date ? timestamp : new Date(timestamp);
-
-  const yyyy = dateObj.getFullYear();
-  const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const dd = String(dateObj.getDate()).padStart(2, '0');
-  const dateStr = `${yyyy}${mm}${dd}`;
-
-  const hh = String(dateObj.getHours()).padStart(2, '0');
-  const min = String(dateObj.getMinutes()).padStart(2, '0');
-  const timeStr = `${hh}${min}`;
+  const pad = (n) => String(n).padStart(2, '0');
+  const dateStr = `${dateObj.getFullYear()}${pad(dateObj.getMonth() + 1)}${pad(dateObj.getDate())}`;
+  const timeStr = `${pad(dateObj.getHours())}${pad(dateObj.getMinutes())}`;
 
   const slug = (title || 'untitled')
     .toLowerCase()
@@ -45,3 +39,16 @@ export const formatTimestamp = (isoString) => {
     minute: '2-digit'
   });
 };
+
+/**
+ * Converts a raw filename into a title-cased readable resource title.
+ * Example: 'cloud_infra_intro.pdf' -> 'Cloud Infra Intro'
+ */
+export const formatTitleFromFilename = (filename) => {
+  if (!filename) return '';
+  const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.')) || filename;
+  return nameWithoutExt
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+

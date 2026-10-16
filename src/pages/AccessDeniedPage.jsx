@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldAlert, ArrowLeft, Home, UserCheck } from 'lucide-react';
+import { ShieldAlert, Home, UserCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AccessDeniedPage = () => {

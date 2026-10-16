@@ -1,5 +1,5 @@
 import { getDatabase } from './storage';
-import { supabase, isSupabaseConfigured, mapProfileFromDb } from '../lib/supabase';
+import { supabase, isSupabaseConfigured, mapProfileFromDb, isTableMissingError, logFallbackWarning } from '../lib/supabase';
 
 // SHA-256 hash of authorized administrator password ('atul1234')
 const ADMIN_PASSWORD_HASH = '1f3d10477ff4b02ceeb0e3b177e52d338319db885cbb1d6402a39043a6023483';
@@ -45,8 +45,8 @@ export const authService = {
         .ilike('username', cleanUsername)
         .maybeSingle();
 
-      if (error && error.code === 'PGRST205') {
-        console.warn('[authService] Supabase tables not migrated yet. Falling back to local storage.');
+      if (error && isTableMissingError(error)) {
+        logFallbackWarning('authService');
       } else if (error || !user) {
         throw new Error('User account not found. Only the admin account is currently configured.');
       } else if (user.status === 'DISABLED') {
@@ -57,7 +57,6 @@ export const authService = {
     }
 
     // Fallback: LocalStorage Mock Engine
-    await new Promise((resolve) => setTimeout(resolve, 150));
     const db = getDatabase();
     const user = db.users.find(
       (u) => u.username.toLowerCase() === cleanUsername
@@ -82,17 +81,5 @@ export const authService = {
       role: user.role,
       status: user.status
     };
-  },
-
-  getPresetAccounts() {
-    return [
-      {
-        role: 'ADMIN',
-        label: 'Administrator Account',
-        username: 'admin',
-        name: 'System Administrator',
-        description: 'Full portal access: manage topics, provision facilitators, and oversee resources'
-      }
-    ];
   }
 };
