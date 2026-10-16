@@ -1,0 +1,198 @@
+import { getDatabase, saveDatabase } from './storage';
+import { supabase, isSupabaseConfigured, mapProfileFromDb } from '../lib/supabase';
+
+export const adminService = {
+  async getFacilitators() {
+    if (isSupabaseConfigured) {
+      const { data: facilitators, error: fErr } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'FACILITATOR')
+        .order('created_at', { ascending: true });
+
+      if (fErr) throw new Error(fErr.message);
+
+      const { data: resources, error: rErr } = await supabase
+        .from('resources')
+        .select('uploaded_by');
+
+      if (rErr) throw new Error(rErr.message);
+
+      const counts = (resources || []).reduce((acc, r) => {
+        acc[r.uploaded_by] = (acc[r.uploaded_by] || 0) + 1;
+        return acc;
+      }, {});
+
+      return (facilitators || []).map((f) => ({
+        ...mapProfileFromDb(f),
+        uploadCount: counts[f.username] || 0
+      }));
+    }
+
+    // Fallback: LocalStorage Mock Engine
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const db = getDatabase();
+
+    const facilitators = db.users
+      .filter((u) => u.role === 'FACILITATOR')
+      .map((f) => {
+        const uploadCount = db.resources.filter((r) => r.uploadedBy === f.username).length;
+        return {
+          ...f,
+          uploadCount
+        };
+      });
+
+    return facilitators;
+  },
+
+  async createFacilitator({ username, name }) {
+    if (!username || !username.trim()) {
+      throw new Error('Username is required.');
+    }
+    if (!name || !name.trim()) {
+      throw new Error('Full name is required.');
+    }
+
+    const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+
+    if (isSupabaseConfigured) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert([{
+          username: cleanUsername,
+          name: name.trim(),
+          role: 'FACILITATOR',
+          status: 'ACTIVE'
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === '23505') {
+          throw new Error(`Username "${cleanUsername}" is already taken.`);
+        }
+        throw new Error(error.message);
+      }
+
+      return {
+        ...mapProfileFromDb(data),
+        uploadCount: 0
+      };
+    }
+
+    // Fallback: LocalStorage Mock Engine
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const db = getDatabase();
+
+    const exists = db.users.some(
+      (u) => u.username.toLowerCase() === cleanUsername
+    );
+    if (exists) {
+      throw new Error(`Username "${cleanUsername}" is already taken.`);
+    }
+
+    const newFacilitator = {
+      id: `usr_fac_${Date.now()}`,
+      username: cleanUsername,
+      name: name.trim(),
+      role: 'FACILITATOR',
+      status: 'ACTIVE'
+    };
+
+    db.users.push(newFacilitator);
+    saveDatabase(db);
+
+    return {
+      ...newFacilitator,
+      uploadCount: 0
+    };
+  },
+
+  async toggleFacilitatorStatus(id) {
+    if (isSupabaseConfigured) {
+      const { data: current, error: fetchErr } = await supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', id)
+        .single();
+
+      if (fetchErr || !current) throw new Error('Facilitator not found.');
+      const newStatus = current.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
+
+      const { data, error: updateErr } = await supabase
+        .from('profiles')
+        .update({ status: newStatus })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateErr) throw new Error(updateErr.message);
+      return mapProfileFromDb(data);
+    }
+
+    // Fallback: LocalStorage Mock Engine
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    const db = getDatabase();
+    const facilitator = db.users.find((u) => u.id === id && u.role === 'FACILITATOR');
+
+    if (!facilitator) {
+      throw new Error('Facilitator not found.');
+    }
+
+    facilitator.status = facilitator.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
+    saveDatabase(db);
+
+    return facilitator;
+  },
+
+  async deleteFacilitator(id) {
+    if (isSupabaseConfigured) {
+      const { data: fac, error: fetchErr } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', id)
+        .single();
+
+      if (fetchErr || !fac) throw new Error('Facilitator not found.');
+
+      // Check active uploads
+      const { count, error: countErr } = await supabase
+        .from('resources')
+        .select('*', { count: 'exact', head: true })
+        .eq('uploaded_by', fac.username);
+
+      if (countErr) throw new Error(countErr.message);
+
+      if ((count || 0) > 0) {
+        throw new Error('Cannot delete facilitator with existing resource uploads. Disable their account instead.');
+      }
+
+      const { error: delErr } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', id);
+
+      if (delErr) throw new Error(delErr.message);
+      return true;
+    }
+
+    // Fallback: LocalStorage Mock Engine
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const db = getDatabase();
+    const facilitator = db.users.find((u) => u.id === id && u.role === 'FACILITATOR');
+
+    if (!facilitator) {
+      throw new Error('Facilitator not found.');
+    }
+
+    const hasUploads = db.resources.some((r) => r.uploadedBy === facilitator.username);
+    if (hasUploads) {
+      throw new Error('Cannot delete facilitator with existing resource uploads. Disable their account instead.');
+    }
+
+    db.users = db.users.filter((u) => u.id !== id);
+    saveDatabase(db);
+    return true;
+  }
+};
