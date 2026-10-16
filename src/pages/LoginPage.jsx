@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, LogIn, User, Lock, ArrowRight, ShieldCheck, BookOpen } from 'lucide-react';
+import { GraduationCap, LogIn, Lock, ShieldCheck, KeyRound } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
 import { AlertBanner } from '../components/common/UIFeedback';
@@ -17,7 +17,11 @@ export const LoginPage = () => {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     if (!username.trim()) {
-      setError('Please enter your university username.');
+      setError('Please enter your username.');
+      return;
+    }
+    if (!password) {
+      setError('Please enter your password.');
       return;
     }
 
@@ -34,11 +38,11 @@ export const LoginPage = () => {
     }
   };
 
-  const handleQuickLogin = async (demoUsername) => {
+  const handleAdminQuickLogin = async () => {
     try {
       setLoading(true);
       setError('');
-      const user = await authService.login(demoUsername, 'demo');
+      const user = await authService.login('admin', 'atul1234');
       login(user);
       navigate('/');
     } catch (err) {
@@ -48,8 +52,14 @@ export const LoginPage = () => {
     }
   };
 
+  const handleFillCredentials = () => {
+    setUsername('admin');
+    setPassword('atul1234');
+    setError('');
+  };
+
   return (
-    <div className="container" style={{ maxWidth: '640px', padding: 'var(--space-12) var(--space-4)' }}>
+    <div className="container" style={{ maxWidth: '580px', padding: 'var(--space-12) var(--space-4)' }}>
       <div style={{ textAlign: 'center', marginBottom: 'var(--space-8)' }}>
         <div
           style={{
@@ -71,7 +81,7 @@ export const LoginPage = () => {
           Sign In to ResourceHub
         </h1>
         <p className="page-subtitle">
-          University Course CSF303: Web Engineering Resource Sharing Portal
+          Academic Resource Portal &bull; System Administration
         </p>
       </div>
 
@@ -88,30 +98,32 @@ export const LoginPage = () => {
                 id="username"
                 type="text"
                 className="form-input"
-                placeholder="e.g. student_arun or prof_sharma"
+                placeholder="admin"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 autoComplete="username"
                 disabled={loading}
               />
             </div>
-            <span className="form-helper">Enter your registered student, facilitator, or admin username.</span>
+            <span className="form-helper">Administrator username (e.g. <code>admin</code>).</span>
           </div>
 
           <div className="form-group">
             <label className="form-label" htmlFor="password">
               Password
             </label>
-            <input
-              id="password"
-              type="password"
-              className="form-input"
-              placeholder="Any password in demo mode"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              disabled={loading}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                id="password"
+                type="password"
+                className="form-input"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                disabled={loading}
+              />
+            </div>
           </div>
 
           <button
@@ -121,78 +133,65 @@ export const LoginPage = () => {
             disabled={loading}
           >
             <LogIn size={16} />
-            <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
+            <span>{loading ? 'Authenticating...' : 'Sign In as Administrator'}</span>
           </button>
         </form>
       </div>
 
-      {/* Demo Persona Quick Access Cards */}
+      {/* Admin Quick Access Card */}
       <div className="card" style={{ backgroundColor: 'var(--color-bg-surface)', padding: 'var(--space-6)' }}>
-        <h2 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--color-text-muted)', marginBottom: 'var(--space-3)' }}>
-          Evaluation Quick Sign-In (1-Click)
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-3)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+            <ShieldCheck size={18} style={{ color: '#7c3aed' }} />
+            <span style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--color-text-main)' }}>
+              Administrator Account
+            </span>
+          </div>
+          <span className="badge badge-role">ADMIN</span>
+        </div>
+
         <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
-          Select any role preset to immediately evaluate permissions and features:
+          The portal has been reset to a clean state with all sample data removed. Use the administrator credentials below to access governance controls:
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 'var(--space-3)' }}>
+        <div
+          style={{
+            backgroundColor: 'var(--color-bg-subtle)',
+            padding: 'var(--space-3)',
+            borderRadius: 'var(--radius-md)',
+            fontSize: 'var(--text-xs)',
+            marginBottom: 'var(--space-4)',
+            border: '1px solid var(--color-border-subtle)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          <div>
+            <div><strong>Username:</strong> <code>admin</code></div>
+            <div style={{ marginTop: '2px' }}><strong>Password:</strong> <code>atul1234</code></div>
+          </div>
           <button
             type="button"
-            onClick={() => handleQuickLogin('student_arun')}
-            disabled={loading}
-            className="btn btn-secondary btn-sm"
-            style={{ flexDirection: 'column', alignItems: 'flex-start', padding: 'var(--space-3)', height: 'auto', textAlign: 'left' }}
+            onClick={handleFillCredentials}
+            className="btn btn-ghost btn-sm"
+            style={{ fontSize: '11px', gap: '4px' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', color: 'var(--color-primary)', fontWeight: 600 }}>
-              <BookOpen size={14} />
-              <span>Student</span>
-            </div>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-main)', marginTop: '2px' }}>
-              Arun Patel
-            </span>
-            <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
-              Browse, download, like
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleQuickLogin('prof_sharma')}
-            disabled={loading}
-            className="btn btn-secondary btn-sm"
-            style={{ flexDirection: 'column', alignItems: 'flex-start', padding: 'var(--space-3)', height: 'auto', textAlign: 'left' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', color: 'var(--color-success)', fontWeight: 600 }}>
-              <User size={14} />
-              <span>Facilitator</span>
-            </div>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-main)', marginTop: '2px' }}>
-              Prof. Rahul Sharma
-            </span>
-            <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
-              Uploads &amp; my resources
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleQuickLogin('admin_dean')}
-            disabled={loading}
-            className="btn btn-secondary btn-sm"
-            style={{ flexDirection: 'column', alignItems: 'flex-start', padding: 'var(--space-3)', height: 'auto', textAlign: 'left' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)', color: '#7c3aed', fontWeight: 600 }}>
-              <ShieldCheck size={14} />
-              <span>Administrator</span>
-            </div>
-            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-main)', marginTop: '2px' }}>
-              Dean Academic
-            </span>
-            <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
-              Manage topics &amp; users
-            </span>
+            <KeyRound size={12} />
+            <span>Fill Form</span>
           </button>
         </div>
+
+        <button
+          type="button"
+          onClick={handleAdminQuickLogin}
+          disabled={loading}
+          className="btn btn-secondary"
+          style={{ width: '100%', gap: 'var(--space-2)' }}
+        >
+          <ShieldCheck size={16} />
+          <span>1-Click Sign In as Administrator</span>
+        </button>
       </div>
     </div>
   );

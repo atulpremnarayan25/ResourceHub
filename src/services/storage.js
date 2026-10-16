@@ -1,12 +1,21 @@
 import { initialMockData } from '../data/mockData';
 
-const DB_KEY = 'resourcehub_db_v1';
+const DB_KEY = 'resourcehub_db_v3_clean';
 
 /**
- * Get active database snapshot from localStorage or initialize with seed data.
+ * Get active database snapshot from localStorage or initialize with clean admin data.
  */
 export const getDatabase = () => {
   try {
+    // Clean up any legacy mockup databases from localStorage
+    if (localStorage.getItem('resourcehub_db_v1') || localStorage.getItem('resourcehub_db_v2')) {
+      localStorage.removeItem('resourcehub_db_v1');
+      localStorage.removeItem('resourcehub_db_v2');
+      localStorage.removeItem('resourcehub_active_user');
+      localStorage.setItem(DB_KEY, JSON.stringify(initialMockData));
+      return initialMockData;
+    }
+
     const raw = localStorage.getItem(DB_KEY);
     if (!raw) {
       localStorage.setItem(DB_KEY, JSON.stringify(initialMockData));
@@ -31,12 +40,14 @@ export const saveDatabase = (db) => {
 };
 
 /**
- * Reset database to initial seed data.
+ * Reset database to clean initial state with only admin account.
  */
 export const resetDatabase = () => {
   try {
-    localStorage.setItem(DB_KEY, JSON.stringify(initialMockData));
+    localStorage.removeItem('resourcehub_db_v1');
+    localStorage.removeItem('resourcehub_db_v2');
     localStorage.removeItem('resourcehub_active_user');
+    localStorage.setItem(DB_KEY, JSON.stringify(initialMockData));
   } catch (err) {
     console.error('Failed to reset database:', err);
   }

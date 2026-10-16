@@ -7,8 +7,23 @@ export const authService = {
       throw new Error('Please provide both username and password.');
     }
 
+    const cleanUsername = username.trim().toLowerCase();
+
+    // Enforce Admin credentials with designated password atul1234
+    if (cleanUsername === 'admin' || cleanUsername === 'admin_dean') {
+      if (password !== 'atul1234') {
+        throw new Error('Incorrect password. Please enter the valid admin password.');
+      }
+      return {
+        id: 'usr_adm_1',
+        username: 'admin',
+        name: 'System Administrator',
+        role: 'ADMIN',
+        status: 'ACTIVE'
+      };
+    }
+
     if (isSupabaseConfigured) {
-      const cleanUsername = username.trim().toLowerCase();
       const { data: user, error } = await supabase
         .from('profiles')
         .select('*')
@@ -18,7 +33,7 @@ export const authService = {
       if (error && error.code === 'PGRST205') {
         console.warn('[authService] Supabase tables not migrated yet. Falling back to local storage.');
       } else if (error || !user) {
-        throw new Error('User account not found. Please check your username.');
+        throw new Error('User account not found. Only the admin account is currently configured.');
       } else if (user.status === 'DISABLED') {
         throw new Error('This account has been disabled by the administrator.');
       } else {
@@ -30,15 +45,19 @@ export const authService = {
     await new Promise((resolve) => setTimeout(resolve, 150));
     const db = getDatabase();
     const user = db.users.find(
-      (u) => u.username.toLowerCase() === username.trim().toLowerCase()
+      (u) => u.username.toLowerCase() === cleanUsername
     );
 
     if (!user) {
-      throw new Error('User account not found. Please check your username.');
+      throw new Error('User account not found. Only the admin account is currently configured.');
     }
 
     if (user.status === 'DISABLED') {
       throw new Error('This account has been disabled by the administrator.');
+    }
+
+    if (user.password && user.password !== password) {
+      throw new Error('Incorrect password. Please try again.');
     }
 
     return {
@@ -53,25 +72,11 @@ export const authService = {
   getPresetAccounts() {
     return [
       {
-        role: 'STUDENT',
-        label: 'Student Account',
-        username: 'student_arun',
-        name: 'Arun Patel',
-        description: 'Browse topics, download materials, like/unlike resources'
-      },
-      {
-        role: 'FACILITATOR',
-        label: 'Facilitator Account',
-        username: 'prof_sharma',
-        name: 'Prof. Rahul Sharma',
-        description: 'Upload PDF/PPTX resources to topics, manage own uploads'
-      },
-      {
         role: 'ADMIN',
         label: 'Administrator Account',
-        username: 'admin_dean',
-        name: 'Dean Academic Affairs',
-        description: 'Create and manage topics, provision and disable facilitators'
+        username: 'admin',
+        name: 'System Administrator',
+        description: 'Full portal access: manage topics, provision facilitators, and oversee resources'
       }
     ];
   }

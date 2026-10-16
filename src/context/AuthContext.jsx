@@ -12,19 +12,19 @@ export const AuthProvider = ({ children }) => {
         return null;
       }
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Only retain valid admin or provisioned accounts, wipe legacy mock users
+        if (parsed.username === 'student_arun' || parsed.username === 'prof_sharma' || parsed.username === 'student_ananya') {
+          localStorage.removeItem(STORAGE_KEY_AUTH);
+          return null;
+        }
+        return parsed;
       }
     } catch (e) {
       console.warn('Failed to parse saved user from storage:', e);
     }
-    // Default demo session: Student
-    return {
-      id: 'usr_stu_1',
-      username: 'student_arun',
-      name: 'Arun Patel',
-      role: 'STUDENT',
-      status: 'ACTIVE'
-    };
+    // Clean initial state starts unauthenticated
+    return null;
   });
 
   useEffect(() => {
@@ -47,41 +47,12 @@ export const AuthProvider = ({ children }) => {
     setCurrentUser(null);
   };
 
-  const switchRole = (role) => {
-    if (role === 'STUDENT') {
-      setCurrentUser({
-        id: 'usr_stu_1',
-        username: 'student_arun',
-        name: 'Arun Patel',
-        role: 'STUDENT',
-        status: 'ACTIVE'
-      });
-    } else if (role === 'FACILITATOR') {
-      setCurrentUser({
-        id: 'usr_fac_1',
-        username: 'prof_sharma',
-        name: 'Prof. Rahul Sharma',
-        role: 'FACILITATOR',
-        status: 'ACTIVE'
-      });
-    } else if (role === 'ADMIN') {
-      setCurrentUser({
-        id: 'usr_adm_1',
-        username: 'admin_dean',
-        name: 'Dean Academic Affairs',
-        role: 'ADMIN',
-        status: 'ACTIVE'
-      });
-    }
-  };
-
   const value = {
     currentUser,
     role: currentUser?.role || null,
     isAuthenticated: Boolean(currentUser),
     login,
-    logout,
-    switchRole
+    logout
   };
 
   return (

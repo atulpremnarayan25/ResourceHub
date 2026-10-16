@@ -14,7 +14,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 export const Header = () => {
-  const { currentUser, role, logout, switchRole } = useAuth();
+  const { currentUser, role, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -97,25 +97,12 @@ export const Header = () => {
         <div className="header-actions">
           {currentUser ? (
             <>
-              {/* Role Switcher Demo Helper */}
+              {/* User badge */}
               <div className="user-badge-group">
                 <GraduationCap size={14} className="text-muted" />
                 <span className="user-name-label">{currentUser.name || currentUser.username}</span>
                 <span className="badge badge-role">{currentUser.role}</span>
               </div>
-
-              {/* Quick Role Select for ease of testing */}
-              <select
-                aria-label="Switch active demo role"
-                value={role || ''}
-                onChange={(e) => switchRole(e.target.value)}
-                className="form-select"
-                style={{ padding: '0.2rem 0.5rem', fontSize: 'var(--text-xs)', width: 'auto' }}
-              >
-                <option value="STUDENT">Role: Student</option>
-                <option value="FACILITATOR">Role: Facilitator</option>
-                <option value="ADMIN">Role: Admin</option>
-              </select>
 
               <button
                 type="button"
