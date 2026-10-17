@@ -1,5 +1,6 @@
 import { getDatabase, saveDatabase } from './storage';
 import { supabase, isSupabaseConfigured, mapProfileFromDb, isTableMissingError, logFallbackWarning } from '../lib/supabase';
+import { hashPassword } from '../utils/security';
 
 export const adminService = {
   async getFacilitators() {
@@ -51,27 +52,50 @@ export const adminService = {
     return facilitators;
   },
 
-  async createFacilitator({ username, name }) {
+  async createFacilitator({ username, name, password }) {
     if (!username || !username.trim()) {
       throw new Error('Username is required.');
     }
     if (!name || !name.trim()) {
       throw new Error('Full name is required.');
     }
+    if (!password || password.length < 6) {
+      throw new Error('Initial password must be at least 6 characters.');
+    }
 
     const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '');
+    const passwordHash = await hashPassword(password);
 
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('profiles')
         .insert([{
           username: cleanUsername,
           name: name.trim(),
           role: 'FACILITATOR',
-          status: 'ACTIVE'
+          status: 'ACTIVE',
+          password_hash: passwordHash
         }])
         .select()
         .single();
+
+      // Graceful fallback if database column password_hash is not yet added
+      if (error && error.message?.includes('password_hash')) {
+        const retry = await supabase
+          .from('profiles')
+          .insert([{
+            username: cleanUsername,
+            name: name.trim(),
+            role: 'FACILITATOR',
+            status: 'ACTIVE'
+          }])
+          .select()
+          .single();
+        if (!retry.error) {
+          data = retry.data;
+          error = null;
+        }
+      }
 
       if (error) {
         if (isTableMissingError(error)) {
@@ -82,6 +106,15 @@ export const adminService = {
           throw new Error(error.message);
         }
       } else {
+        // Cache password hash in localStorage for client-side fallback when Supabase lacks password_hash column
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            const hashes = JSON.parse(window.localStorage.getItem('resourcehub_credential_hashes') || '{}');
+            hashes[cleanUsername] = passwordHash;
+            window.localStorage.setItem('resourcehub_credential_hashes', JSON.stringify(hashes));
+          }
+        } catch {}
+
         return {
           ...mapProfileFromDb(data),
           uploadCount: 0
@@ -104,8 +137,17 @@ export const adminService = {
       username: cleanUsername,
       name: name.trim(),
       role: 'FACILITATOR',
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      password_hash: passwordHash
     };
+
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const hashes = JSON.parse(window.localStorage.getItem('resourcehub_credential_hashes') || '{}');
+        hashes[cleanUsername] = passwordHash;
+        window.localStorage.setItem('resourcehub_credential_hashes', JSON.stringify(hashes));
+      }
+    } catch {}
 
     db.users.push(newFacilitator);
     saveDatabase(db);

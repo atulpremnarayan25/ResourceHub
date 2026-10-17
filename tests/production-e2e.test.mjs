@@ -146,8 +146,10 @@ async function runProductionTests() {
 
     const facName = `Prof. Vikram Mehta ${Date.now()}`;
     const facUsername = `prof_mehta_${Date.now()}`;
+    const facPassword = 'prof_secure_pwd_123';
     await page.locator('#facFullName').fill(facName);
     await page.locator('#facUsername').fill(facUsername);
+    await page.locator('#facPassword').fill(facPassword);
     await page.click('.modal-footer button[type="submit"]');
     await page.waitForSelector('.modal-dialog', { state: 'detached', timeout: 10000 });
 
@@ -202,6 +204,55 @@ async function runProductionTests() {
     console.log('✓ Test 8 passed: 1-Click button removed and primary authentication with return URL verified');
 
     // =========================================================================
+    // Test 9: Facilitator Password Hardening & Strict Login Verification
+    // =========================================================================
+    console.log('\nTest 9: Testing Facilitator Password Hardening & Rejection...');
+    await page.locator('button:has-text("Sign Out")').click();
+    await page.waitForURL(url => url.pathname.includes('/login'));
+
+    // Attempt login with wrong password
+    await page.locator('#username').fill(facUsername);
+    await page.locator('#password').fill('wrongpassword123');
+    await page.click('button[type="submit"]');
+    await page.waitForSelector('.alert-danger');
+    const facErrorMsg = await page.locator('.alert-danger span').textContent();
+    assert(facErrorMsg.includes('Incorrect password'), 'Wrong facilitator password must be rejected');
+
+    // Attempt login with correct password
+    await page.locator('#password').fill(facPassword);
+    await page.click('button[type="submit"]');
+    await page.waitForURL(url => url.pathname.includes('/facilitator'));
+    await page.waitForSelector('.badge-role:has-text("FACILITATOR")');
+    console.log('✓ Test 9 passed: Facilitator password enforcement verified (wrong rejected, correct accepted)');
+
+    // =========================================================================
+    // Test 10: Student Registration & Authentication Flow
+    // =========================================================================
+    console.log('\nTest 10: Testing Student Registration & Authentication Flow...');
+    await page.locator('button:has-text("Sign Out")').click();
+    await page.waitForURL(url => url.pathname.includes('/login'));
+
+    // Navigate to /signup
+    await page.click('a:has-text("Create an account")');
+    await page.waitForURL(url => url.pathname.includes('/signup'));
+    await page.waitForSelector('h1:has-text("Create Student Account")');
+
+    const studentName = `Diya Sharma ${Date.now()}`;
+    const studentUsername = `student_diya_${Date.now()}`;
+    const studentPassword = 'diya_secure_pass_1';
+
+    await page.locator('#studentName').fill(studentName);
+    await page.locator('#studentUsername').fill(studentUsername);
+    await page.locator('#studentPassword').fill(studentPassword);
+    await page.locator('#studentConfirmPassword').fill(studentPassword);
+    await page.click('button[type="submit"]');
+
+    // Auto-login to /topics with STUDENT badge
+    await page.waitForURL(url => url.pathname.includes('/topics'));
+    await page.waitForSelector('.badge-role:has-text("STUDENT")');
+    console.log('✓ Test 10 passed: Student registration, auto-login, and STUDENT badge verified');
+
+    // =========================================================================
     // Console & Uncaught Exception Inspection
     // =========================================================================
     console.log('\nAuditing Browser Console Logs & Errors...');
@@ -213,7 +264,7 @@ async function runProductionTests() {
     console.log(`✓ Browser health verified: ${pageErrors.length} uncaught exceptions, ${fatalErrors.length} console errors`);
 
     console.log('\n=================================================================');
-    console.log('🎉 ALL 8 PRODUCTION TEST SUITES PASSED ON VERCEL WITH ZERO ERRORS!');
+    console.log('🎉 ALL 10 PRODUCTION TEST SUITES PASSED ON VERCEL WITH ZERO ERRORS!');
     console.log('=================================================================');
   } catch (err) {
     console.error('\n❌ Production Test Failure Encountered:', err);

@@ -78,3 +78,28 @@ export const validateFileHeader = async (file) => {
     return { valid: false, reason: 'Unable to inspect file binary header.' };
   }
 };
+
+/**
+ * Computes SHA-256 cryptographic hash of a given string using the Web Crypto API.
+ * Compatible with modern browsers and Node.js.
+ *
+ * @param {string} text - Plaintext string to hash
+ * @returns {Promise<string>} Hexadecimal SHA-256 hash string
+ */
+export const hashPassword = async (text) => {
+  if (typeof text !== 'string') return '';
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const encoded = new TextEncoder().encode(trimmed);
+    const buffer = await crypto.subtle.digest('SHA-256', encoded);
+    return Array.from(new Uint8Array(buffer))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+  return trimmed;
+};
+
+// SHA-256 hash of authorized administrator password
+export const ADMIN_PASSWORD_HASH = '1f3d10477ff4b02ceeb0e3b177e52d338319db885cbb1d6402a39043a6023483';

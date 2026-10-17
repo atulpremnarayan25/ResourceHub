@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Power, Trash2, X, Check } from 'lucide-react';
+import { Users, UserPlus, Power, Trash2, X, Check, Eye, EyeOff } from 'lucide-react';
 import { adminService } from '../services/adminService';
 import { LoadingSpinner, EmptyState, AlertBanner } from '../components/common/UIFeedback';
 
-const initialFacForm = { username: '', name: '' };
+const initialFacForm = { username: '', name: '', password: '' };
 
 export const AdminFacilitatorsPage = () => {
   const [facilitators, setFacilitators] = useState([]);
@@ -14,10 +14,12 @@ export const AdminFacilitatorsPage = () => {
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState(initialFacForm);
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const resetForm = () => {
     setFormData(initialFacForm);
+    setShowPassword(false);
     setModalOpen(false);
   };
 
@@ -40,8 +42,12 @@ export const AdminFacilitatorsPage = () => {
 
   const handleCreateFacilitator = async (e) => {
     e.preventDefault();
-    if (!formData.username.trim() || !formData.name.trim()) {
-      setError('Username and full name are required.');
+    if (!formData.username.trim() || !formData.name.trim() || !formData.password) {
+      setError('Full name, username, and initial password are required.');
+      return;
+    }
+    if (formData.password.length < 6) {
+      setError('Initial password must be at least 6 characters.');
       return;
     }
 
@@ -252,6 +258,42 @@ export const AdminFacilitatorsPage = () => {
                     disabled={submitting}
                   />
                   <span className="form-helper">Used for login and in standardized academic filenames.</span>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="facPassword">
+                    Initial Password <span style={{ color: 'var(--color-danger)' }}>*</span>
+                  </label>
+                  <div className="input-with-toggle">
+                    <input
+                      id="facPassword"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      className="form-input"
+                      placeholder="Enter initial password (min 6 characters)"
+                      value={formData.password}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
+                      autoComplete="new-password"
+                      required
+                      disabled={submitting}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle-btn"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      aria-pressed={showPassword}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                      disabled={submitting}
+                    >
+                      {showPassword ? (
+                        <EyeOff size={18} aria-hidden="true" />
+                      ) : (
+                        <Eye size={18} aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
+                  <span className="form-helper">Initial login password for the instructor.</span>
                 </div>
               </div>
 

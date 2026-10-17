@@ -6,6 +6,7 @@ import { AppLayout } from './components/layout/AppLayout';
 
 // Pages
 import { LoginPage } from './pages/LoginPage';
+import { SignupPage } from './pages/SignupPage';
 import { TopicsPage } from './pages/TopicsPage';
 import { TopicDetailPage } from './pages/TopicDetailPage';
 import { FacilitatorDashboardPage } from './pages/FacilitatorDashboardPage';
@@ -21,8 +22,9 @@ export const App = () => {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public Login Route */}
+          {/* Public Authentication Routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
 
           {/* Core Layout Routes */}
           <Route element={<AppLayout />}>

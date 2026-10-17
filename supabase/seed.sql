@@ -4,13 +4,13 @@
 -- ============================================================================
 
 -- 1. Seed Profiles (Students, Facilitators, Administrator)
-INSERT INTO public.profiles (id, username, name, role, status) VALUES
-  ('a0000000-0000-0000-0000-000000000001', 'student_arun', 'Arun Patel', 'STUDENT', 'ACTIVE'),
-  ('a0000000-0000-0000-0000-000000000002', 'student_ananya', 'Ananya Rao', 'STUDENT', 'ACTIVE'),
-  ('a0000000-0000-0000-0000-000000000003', 'prof_sharma', 'Prof. Rahul Sharma', 'FACILITATOR', 'ACTIVE'),
-  ('a0000000-0000-0000-0000-000000000004', 'dr_atul', 'Dr. Atul Verma', 'FACILITATOR', 'ACTIVE'),
-  ('a0000000-0000-0000-0000-000000000005', 'priya_nair', 'Priya Nair', 'FACILITATOR', 'DISABLED'),
-  ('a0000000-0000-0000-0000-000000000006', 'admin_dean', 'Dean Academic Affairs', 'ADMIN', 'ACTIVE')
+INSERT INTO public.profiles (id, username, name, role, status, password_hash) VALUES
+  ('a0000000-0000-0000-0000-000000000001', 'student_arun', 'Arun Patel', 'STUDENT', 'ACTIVE', '703b0a3d6ad75b649a28adde7d83c6251da457549263bc7ff45ec709b0a8448b'),
+  ('a0000000-0000-0000-0000-000000000002', 'student_ananya', 'Ananya Rao', 'STUDENT', 'ACTIVE', '703b0a3d6ad75b649a28adde7d83c6251da457549263bc7ff45ec709b0a8448b'),
+  ('a0000000-0000-0000-0000-000000000003', 'prof_sharma', 'Prof. Rahul Sharma', 'FACILITATOR', 'ACTIVE', '2c3e5b0a72f6317d4187fada1af43aa74b6a510757c3d3aa3eff14c8f4dd6889'),
+  ('a0000000-0000-0000-0000-000000000004', 'dr_atul', 'Dr. Atul Verma', 'FACILITATOR', 'ACTIVE', '2c3e5b0a72f6317d4187fada1af43aa74b6a510757c3d3aa3eff14c8f4dd6889'),
+  ('a0000000-0000-0000-0000-000000000005', 'priya_nair', 'Priya Nair', 'FACILITATOR', 'DISABLED', '2c3e5b0a72f6317d4187fada1af43aa74b6a510757c3d3aa3eff14c8f4dd6889'),
+  ('a0000000-0000-0000-0000-000000000006', 'admin_dean', 'Dean Academic Affairs', 'ADMIN', 'ACTIVE', '1f3d10477ff4b02ceeb0e3b177e52d338319db885cbb1d6402a39043a6023483')
 ON CONFLICT (username) DO NOTHING;
 
 -- 2. Seed Topics

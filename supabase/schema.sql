@@ -19,6 +19,7 @@ CREATE TABLE public.profiles (
   name TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('STUDENT', 'FACILITATOR', 'ADMIN')),
   status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'DISABLED')),
+  password_hash TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
@@ -107,6 +108,9 @@ CREATE POLICY "Allow public read access to profiles"
   ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Allow admin manage profiles"
   ON public.profiles FOR ALL USING (true);
+CREATE POLICY "Allow student self registration"
+  ON public.profiles FOR INSERT
+  WITH CHECK (role = 'STUDENT' AND status = 'ACTIVE');
 
 -- Topics Policies
 CREATE POLICY "Allow public read access to topics"

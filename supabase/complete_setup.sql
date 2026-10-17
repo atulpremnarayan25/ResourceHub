@@ -18,6 +18,7 @@ CREATE TABLE public.profiles (
   name TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('STUDENT', 'FACILITATOR', 'ADMIN')),
   status TEXT NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE', 'DISABLED')),
+  password_hash TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
@@ -102,6 +103,9 @@ CREATE POLICY "Allow public read access to profiles"
   ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Allow admin manage profiles"
   ON public.profiles FOR ALL USING (true);
+CREATE POLICY "Allow student self registration"
+  ON public.profiles FOR INSERT
+  WITH CHECK (role = 'STUDENT' AND status = 'ACTIVE');
 
 -- Topics Policies
 CREATE POLICY "Allow public read access to topics"
@@ -163,8 +167,8 @@ CREATE POLICY "Allow author or admin delete files"
 -- ============================================================================
 -- 10. Initial Admin Profile (Only admin account provisioned)
 -- ============================================================================
-INSERT INTO public.profiles (id, username, name, role, status) VALUES
-  ('a0000000-0000-0000-0000-000000000001', 'admin', 'System Administrator', 'ADMIN', 'ACTIVE'),
-  ('a0000000-0000-0000-0000-000000000002', 'admin_dean', 'System Administrator', 'ADMIN', 'ACTIVE')
+INSERT INTO public.profiles (id, username, name, role, status, password_hash) VALUES
+  ('a0000000-0000-0000-0000-000000000001', 'admin', 'System Administrator', 'ADMIN', 'ACTIVE', '1f3d10477ff4b02ceeb0e3b177e52d338319db885cbb1d6402a39043a6023483'),
+  ('a0000000-0000-0000-0000-000000000002', 'admin_dean', 'System Administrator', 'ADMIN', 'ACTIVE', '1f3d10477ff4b02ceeb0e3b177e52d338319db885cbb1d6402a39043a6023483')
 ON CONFLICT (username) DO NOTHING;
 

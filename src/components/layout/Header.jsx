@@ -4,6 +4,7 @@ import {
   BookOpen,
   LogOut,
   LogIn,
+  UserPlus,
   Menu,
   X,
   GraduationCap
@@ -88,10 +89,16 @@ export const Header = () => {
               </button>
             </>
           ) : (
-            <Link to="/login" className="btn btn-primary btn-sm">
-              <LogIn size={15} />
-              <span>Sign In</span>
-            </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <Link to="/login" className="btn btn-ghost btn-sm">
+                <LogIn size={15} />
+                <span>Sign In</span>
+              </Link>
+              <Link to="/signup" className="btn btn-primary btn-sm">
+                <UserPlus size={15} />
+                <span>Sign Up</span>
+              </Link>
+            </div>
           )}
 
           {/* Mobile hamburger */}
@@ -119,6 +126,18 @@ export const Header = () => {
               {item.label}
             </NavLink>
           ))}
+          {!currentUser && (
+            <div style={{ marginTop: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', paddingTop: 'var(--space-3)', borderTop: '1px solid var(--color-border-subtle)' }}>
+              <Link to="/login" className="btn btn-secondary btn-sm" onClick={closeMobile}>
+                <LogIn size={15} />
+                <span>Sign In</span>
+              </Link>
+              <Link to="/signup" className="btn btn-primary btn-sm" onClick={closeMobile}>
+                <UserPlus size={15} />
+                <span>Sign Up</span>
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </header>

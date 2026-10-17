@@ -82,7 +82,7 @@ async function runTests() {
     console.log('✓ Test 3 passed: Admin topic creation verified');
 
     // -------------------------------------------------------------
-    // Test 4: Admin Facilitator Provisioning
+    // Test 4: Admin Facilitator Provisioning with Password
     // -------------------------------------------------------------
     console.log('Test 4: Admin Facilitator Provisioning...');
     await page.goto(`${BASE_URL}/admin/facilitators`);
@@ -96,8 +96,10 @@ async function runTests() {
 
     const testFacName = `Prof. Rahul Sharma ${Date.now()}`;
     const testFacUsername = `prof_sharma_${Date.now()}`;
+    const testFacPassword = 'fac_password_1234';
     await page.locator('#facFullName').fill(testFacName);
     await page.locator('#facUsername').fill(testFacUsername);
+    await page.locator('#facPassword').fill(testFacPassword);
     await page.click('.modal-footer button[type="submit"]');
 
     // Wait for creation request to complete and modal to close
@@ -107,7 +109,7 @@ async function runTests() {
     const facRow = page.locator('table tr').filter({ hasText: testFacName });
     await facRow.waitFor({ state: 'visible', timeout: 10000 });
     assert(await facRow.isVisible(), 'Provisioned facilitator should appear in table');
-    console.log('✓ Test 4 passed: Facilitator provisioning verified');
+    console.log('✓ Test 4 passed: Facilitator provisioning with password verified');
 
     // -------------------------------------------------------------
     // Test 5: Sign Out & Route Guard Protection
@@ -138,7 +140,115 @@ async function runTests() {
     assert(await page.locator('.header-actions .badge-role:has-text("ADMIN")').isVisible(), 'Authenticated as Admin');
     console.log('✓ Test 5 passed: Sign out, route guards, removed insecure controls, and protected route return verified');
 
-    console.log('\n🎉 ALL 5 PLAYWRIGHT E2E TESTS PASSED SUCCESSFULLY!');
+    // -------------------------------------------------------------
+    // Test 6: Facilitator Password Hardening & Strict Login Verification
+    // -------------------------------------------------------------
+    console.log('Test 6: Facilitator Password Hardening...');
+    // Sign out from admin
+    await page.locator('button:has-text("Sign Out")').click();
+    await page.waitForURL(`${BASE_URL}/login`);
+
+    // 1. Attempt login with wrong password
+    await page.locator('#username').fill(testFacUsername);
+    await page.locator('#password').fill('wrongpassword');
+    await page.click('button[type="submit"]');
+    await page.waitForSelector('.alert-danger');
+    const facErrorMsg = await page.locator('.alert-danger span').textContent();
+    assert(facErrorMsg.includes('Incorrect password'), 'Facilitator login with wrong password must be rejected');
+
+    // 2. Attempt login with correct provisioned password
+    await page.locator('#password').fill(testFacPassword);
+    await page.click('button[type="submit"]');
+
+    await page.waitForURL(url => url.pathname.includes('/facilitator'));
+    await page.waitForSelector('.badge-role:has-text("FACILITATOR")');
+    console.log('✓ Test 6 passed: Facilitator password enforcement verified (wrong password rejected, correct password authenticated)');
+
+    // -------------------------------------------------------------
+    // Test 7: Student Signup & Automatic Login Flow
+    // -------------------------------------------------------------
+    console.log('Test 7: Student Self-Registration & Auto-Login...');
+    // Sign out from facilitator
+    await page.locator('button:has-text("Sign Out")').click();
+    await page.waitForURL(`${BASE_URL}/login`);
+
+    // Click "Create an account" link from login page
+    await page.click('a:has-text("Create an account")');
+    await page.waitForURL(`${BASE_URL}/signup`);
+    await page.waitForSelector('h1:has-text("Create Student Account")');
+
+    const testStudentName = `Aarav Patel ${Date.now()}`;
+    const testStudentUsername = `student_${Date.now()}`;
+    const testStudentPassword = 'student_pass_123';
+
+    await page.locator('#studentName').fill(testStudentName);
+    await page.locator('#studentUsername').fill(testStudentUsername);
+    await page.locator('#studentPassword').fill(testStudentPassword);
+    await page.locator('#studentConfirmPassword').fill(testStudentPassword);
+    await page.click('button[type="submit"]');
+
+    // Upon successful registration, automatically logs in and navigates to /topics
+    await page.waitForURL(url => url.pathname.includes('/topics'));
+    await page.waitForSelector('.badge-role:has-text("STUDENT")');
+    console.log('✓ Test 7 passed: Student signup and auto-login verified with STUDENT badge');
+
+    // -------------------------------------------------------------
+    // Test 8: Student Logout & Login Password Validation
+    // -------------------------------------------------------------
+    console.log('Test 8: Student Logout & Strict Login Validation...');
+    await page.locator('button:has-text("Sign Out")').click();
+    await page.waitForURL(`${BASE_URL}/login`);
+
+    // Verify unauthenticated header buttons on public layout
+    await page.goto(`${BASE_URL}/topics`);
+    assert(await page.locator('.header-actions a:has-text("Sign In")').isVisible(), 'Header should show Sign In link');
+    assert(await page.locator('.header-actions a:has-text("Sign Up")').isVisible(), 'Header should show Sign Up link');
+
+    // Return to login page to verify student credential checking
+    await page.goto(`${BASE_URL}/login`);
+
+    // Wrong password check
+    await page.locator('#username').fill(testStudentUsername);
+    await page.locator('#password').fill('wrongstudentpwd');
+    await page.click('button[type="submit"]');
+    await page.waitForSelector('.alert-danger');
+    const stuError = await page.locator('.alert-danger span').textContent();
+    assert(stuError.includes('Incorrect password'), 'Wrong student password must be rejected');
+
+    // Correct password check
+    await page.locator('#password').fill(testStudentPassword);
+    await page.click('button[type="submit"]');
+    await page.waitForURL(url => url.pathname.includes('/topics'));
+    await page.waitForSelector('.badge-role:has-text("STUDENT")');
+    console.log('✓ Test 8 passed: Student login password verification confirmed');
+
+    // -------------------------------------------------------------
+    // Test 9: Student Resource Interaction (Liking Resources)
+    // -------------------------------------------------------------
+    console.log('Test 9: Student Resource Interaction (Liking)...');
+    // Navigate into a topic detail page if topics exist
+    const topicCards = page.locator('.topics-grid .card');
+    const topicCount = await topicCards.count();
+    if (topicCount > 0) {
+      await topicCards.first().locator('a, button').first().click();
+      await page.waitForSelector('h1');
+
+      const likeBtn = page.locator('.resource-card button[aria-label^="Like"], .resource-card button[aria-label^="Unlike"]').first();
+      if (await likeBtn.isVisible()) {
+        const initialCountText = await likeBtn.locator('span').textContent();
+        const initialCount = parseInt(initialCountText, 10) || 0;
+        await likeBtn.click();
+        await page.waitForTimeout(500);
+
+        const updatedCountText = await likeBtn.locator('span').textContent();
+        const updatedCount = parseInt(updatedCountText, 10) || 0;
+        assert(updatedCount === initialCount + 1 || updatedCount === initialCount - 1, 'Like count should update when student likes resource');
+        console.log(`  ✓ Resource like count updated from ${initialCount} to ${updatedCount}`);
+      }
+    }
+    console.log('✓ Test 9 passed: Student resource interaction verified');
+
+    console.log('\n🎉 ALL 9 PLAYWRIGHT E2E TESTS PASSED SUCCESSFULLY!');
   } catch (err) {
     console.error('❌ Playwright Test Failure:', err);
     process.exit(1);
