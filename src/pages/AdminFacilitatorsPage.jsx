@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Power, Trash2, X, Check, Eye, EyeOff } from 'lucide-react';
+import { Users, UserPlus, Power, Trash2, X, Check, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { adminService } from '../services/adminService';
 import { LoadingSpinner, EmptyState, AlertBanner } from '../components/common/UIFeedback';
 
@@ -11,16 +11,60 @@ export const AdminFacilitatorsPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Modal State
+  // Add Facilitator Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [formData, setFormData] = useState(initialFacForm);
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Reset Password Modal State
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetTargetFac, setResetTargetFac] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+
   const resetForm = () => {
     setFormData(initialFacForm);
     setShowPassword(false);
     setModalOpen(false);
+  };
+
+  const openResetModal = (fac) => {
+    setResetTargetFac(fac);
+    setNewPassword('');
+    setShowResetPassword(false);
+    setResetModalOpen(true);
+  };
+
+  const closeResetModal = () => {
+    setResetTargetFac(null);
+    setNewPassword('');
+    setShowResetPassword(false);
+    setResetModalOpen(false);
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!resetTargetFac) return;
+
+    if (!newPassword || newPassword.length < 6) {
+      setError('New password must be at least 6 characters.');
+      return;
+    }
+
+    try {
+      setResetSubmitting(true);
+      setError('');
+      setSuccess('');
+      await adminService.resetFacilitatorPassword(resetTargetFac.id, newPassword);
+      setSuccess(`Password for facilitator "${resetTargetFac.name}" has been successfully reset.`);
+      closeResetModal();
+    } catch (err) {
+      setError(err.message || 'Failed to reset facilitator password.');
+    } finally {
+      setResetSubmitting(false);
+    }
   };
 
   const loadFacilitators = async () => {
@@ -175,6 +219,16 @@ export const AdminFacilitatorsPage = () => {
                       </td>
                       <td style={{ padding: 'var(--space-4)', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <button
+                          onClick={() => openResetModal(f)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ marginRight: 'var(--space-2)' }}
+                          title={`Reset password for ${f.name}`}
+                          aria-label={`Reset password for ${f.name}`}
+                        >
+                          <KeyRound size={13} />
+                          <span>Reset Password</span>
+                        </button>
+                        <button
                           onClick={() => handleToggleStatus(f.id, f.status, f.name)}
                           className={isActive ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'}
                           style={{ marginRight: 'var(--space-2)' }}
@@ -309,6 +363,93 @@ export const AdminFacilitatorsPage = () => {
                 <button type="submit" className="btn btn-primary" disabled={submitting}>
                   <Check size={16} />
                   <span>{submitting ? 'Creating...' : 'Create Account'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Facilitator Password Modal */}
+      {resetModalOpen && resetTargetFac && (
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeResetModal();
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="reset-modal-title"
+        >
+          <div className="modal-dialog">
+            <div className="modal-header">
+              <h2 id="reset-modal-title" className="modal-title">Reset Facilitator Password</h2>
+              <button
+                onClick={closeResetModal}
+                className="btn btn-ghost btn-sm"
+                style={{ padding: '4px', borderRadius: 'var(--radius-pill)' }}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleResetPassword}>
+              <div className="modal-body">
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-4)' }}>
+                  Set a new password for <strong>{resetTargetFac.name}</strong> (<code>{resetTargetFac.username}</code>).
+                </p>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="resetNewPassword">
+                    New Password <span style={{ color: 'var(--color-danger)' }}>*</span>
+                  </label>
+                  <div className="input-with-toggle">
+                    <input
+                      id="resetNewPassword"
+                      name="newPassword"
+                      type={showResetPassword ? 'text' : 'password'}
+                      className="form-input"
+                      placeholder="Enter new password (min 6 characters)"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      autoComplete="new-password"
+                      required
+                      disabled={resetSubmitting}
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle-btn"
+                      onClick={() => setShowResetPassword((prev) => !prev)}
+                      aria-label={showResetPassword ? 'Hide password' : 'Show password'}
+                      aria-pressed={showResetPassword}
+                      title={showResetPassword ? 'Hide password' : 'Show password'}
+                      disabled={resetSubmitting}
+                    >
+                      {showResetPassword ? (
+                        <EyeOff size={18} aria-hidden="true" />
+                      ) : (
+                        <Eye size={18} aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
+                  <span className="form-helper">The facilitator will immediately use this new password to authenticate.</span>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  onClick={closeResetModal}
+                  className="btn btn-secondary"
+                  disabled={resetSubmitting}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={resetSubmitting}>
+                  <Check size={16} />
+                  <span>{resetSubmitting ? 'Updating...' : 'Update Password'}</span>
                 </button>
               </div>
             </form>

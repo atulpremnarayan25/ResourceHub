@@ -147,6 +147,7 @@ async function runProductionTests() {
     const facName = `Prof. Vikram Mehta ${Date.now()}`;
     const facUsername = `prof_mehta_${Date.now()}`;
     const facPassword = 'prof_secure_pwd_123';
+    const facResetPassword = 'prof_reset_pwd_456';
     await page.locator('#facFullName').fill(facName);
     await page.locator('#facUsername').fill(facUsername);
     await page.locator('#facPassword').fill(facPassword);
@@ -156,7 +157,15 @@ async function runProductionTests() {
     const facRow = page.locator('table tr').filter({ hasText: facName });
     await facRow.waitFor({ state: 'visible', timeout: 10000 });
     assert(await facRow.isVisible(), 'Provisioned facilitator must appear in management table');
-    console.log('✓ Test 5 passed: Facilitator provisioning verified in admin dashboard');
+
+    // Test Admin Reset Password action
+    await facRow.locator('button:has-text("Reset Password")').click();
+    await page.waitForSelector('#reset-modal-title');
+    await page.locator('#resetNewPassword').fill(facResetPassword);
+    await page.click('.modal-dialog form button[type="submit"]');
+    await page.waitForSelector('#reset-modal-title', { state: 'detached', timeout: 10000 });
+    await page.waitForSelector('.alert-success');
+    console.log('✓ Test 5 passed: Facilitator provisioning and admin reset password verified');
 
     // =========================================================================
     // Test 6: Footer Reset Button Visibility for Authenticated Admin
@@ -218,12 +227,19 @@ async function runProductionTests() {
     const facErrorMsg = await page.locator('.alert-danger span').textContent();
     assert(facErrorMsg.includes('Incorrect password'), 'Wrong facilitator password must be rejected');
 
-    // Attempt login with correct password
+    // Attempt login with old initial password (must be rejected)
     await page.locator('#password').fill(facPassword);
+    await page.click('button[type="submit"]');
+    await page.waitForSelector('.alert-danger');
+    const oldPwdMsg = await page.locator('.alert-danger span').textContent();
+    assert(oldPwdMsg.includes('Incorrect password'), 'Old initial password must be rejected after reset');
+
+    // Attempt login with reset password
+    await page.locator('#password').fill(facResetPassword);
     await page.click('button[type="submit"]');
     await page.waitForURL(url => url.pathname.includes('/facilitator'));
     await page.waitForSelector('.badge-role:has-text("FACILITATOR")');
-    console.log('✓ Test 9 passed: Facilitator password enforcement verified (wrong rejected, correct accepted)');
+    console.log('✓ Test 9 passed: Facilitator password enforcement and reset password login verified');
 
     // =========================================================================
     // Test 10: Student Registration & Authentication Flow

@@ -250,5 +250,73 @@ export const adminService = {
     db.users = db.users.filter((u) => u.id !== id);
     saveDatabase(db);
     return true;
+  },
+
+  async resetFacilitatorPassword(id, newPassword) {
+    if (!newPassword || newPassword.length < 6) {
+      throw new Error('New password must be at least 6 characters.');
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+
+    if (isSupabaseConfigured) {
+      const { data: user, error: fetchErr } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchErr && isTableMissingError(fetchErr)) {
+        logFallbackWarning('adminService');
+      } else if (fetchErr || !user) {
+        throw new Error('Facilitator not found.');
+      } else {
+        const { data, error: updateErr } = await supabase
+          .from('profiles')
+          .update({ password_hash: passwordHash })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (updateErr && !updateErr.message?.includes('password_hash')) {
+          throw new Error(updateErr.message);
+        }
+
+        // Cache reset password hash for client-side enforcement
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            const hashes = JSON.parse(window.localStorage.getItem('resourcehub_credential_hashes') || '{}');
+            hashes[user.username] = passwordHash;
+            window.localStorage.setItem('resourcehub_credential_hashes', JSON.stringify(hashes));
+          }
+        } catch {}
+
+        return mapProfileFromDb(data || user);
+      }
+    }
+
+    // Fallback: LocalStorage Mock Engine
+    const db = getDatabase();
+    const facilitator = db.users.find((u) => u.id === id);
+
+    if (!facilitator) {
+      throw new Error('Facilitator not found.');
+    }
+
+    facilitator.password_hash = passwordHash;
+    if (facilitator.password) {
+      delete facilitator.password;
+    }
+
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const hashes = JSON.parse(window.localStorage.getItem('resourcehub_credential_hashes') || '{}');
+        hashes[facilitator.username] = passwordHash;
+        window.localStorage.setItem('resourcehub_credential_hashes', JSON.stringify(hashes));
+      }
+    } catch {}
+
+    saveDatabase(db);
+    return facilitator;
   }
 };
