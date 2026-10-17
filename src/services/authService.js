@@ -1,7 +1,7 @@
 import { getDatabase } from './storage';
 import { supabase, isSupabaseConfigured, mapProfileFromDb, isTableMissingError, logFallbackWarning } from '../lib/supabase';
 
-// SHA-256 hash of authorized administrator password ('atul1234')
+// SHA-256 hash of authorized administrator password
 const ADMIN_PASSWORD_HASH = '1f3d10477ff4b02ceeb0e3b177e52d338319db885cbb1d6402a39043a6023483';
 
 const computeHash = async (text) => {

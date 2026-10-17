@@ -50,7 +50,7 @@ export const AdminFacilitatorsPage = () => {
       setError('');
       setSuccess('');
       const created = await adminService.createFacilitator(formData);
-      setFacilitators((prev) => [...prev, created]);
+      await loadFacilitators();
       setSuccess(`Facilitator "${created.name}" created with username "${created.username}".`);
       resetForm();
     } catch (err) {

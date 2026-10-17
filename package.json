@@ -6,7 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node tests/login-auth.test.mjs && node tests/e2e.test.mjs",
+    "test:login": "node tests/login-auth.test.mjs",
+    "test:e2e": "node tests/e2e.test.mjs",
+    "test:prod": "node tests/production-e2e.test.mjs",
+    "verify:backend": "node scripts/verify-backend.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",

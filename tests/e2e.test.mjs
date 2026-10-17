@@ -87,6 +87,8 @@ async function runTests() {
     console.log('Test 4: Admin Facilitator Provisioning...');
     await page.goto(`${BASE_URL}/admin/facilitators`);
     await page.waitForSelector('h1:has-text("Manage Course Facilitators")');
+    await page.waitForSelector('.spinner', { state: 'detached', timeout: 15000 }).catch(() => {});
+    await page.waitForSelector('table, .empty-state, .state-box', { timeout: 10000 });
 
     // Open Add Facilitator Modal
     await page.click('button:has-text("Add Facilitator")');
@@ -102,8 +104,8 @@ async function runTests() {
     await page.waitForSelector('.modal-dialog', { state: 'detached', timeout: 10000 });
 
     // Verify facilitator row exists
-    const facRow = page.locator('table tbody tr').filter({ hasText: testFacName });
-    await facRow.waitFor({ state: 'visible', timeout: 5000 });
+    const facRow = page.locator('table tr').filter({ hasText: testFacName });
+    await facRow.waitFor({ state: 'visible', timeout: 10000 });
     assert(await facRow.isVisible(), 'Provisioned facilitator should appear in table');
     console.log('✓ Test 4 passed: Facilitator provisioning verified');
 
@@ -115,17 +117,26 @@ async function runTests() {
     await signOutBtn.click();
     await page.waitForURL(`${BASE_URL}/login`);
 
+    // Verify 1-click admin login and credential panels are completely removed
+    const oneClickAdmin = page.locator('button:has-text("1-Click Sign In as Administrator")');
+    assert.strictEqual(await oneClickAdmin.count(), 0, '1-Click admin sign in must be removed from production login page');
+    const adminHelperCard = page.locator('.card:has-text("Administrator Account")');
+    assert.strictEqual(await adminHelperCard.count(), 0, 'Default credential helper card must be removed');
+
     // Attempt direct access to protected admin route while logged out
     await page.goto(`${BASE_URL}/admin/topics`);
     await page.waitForTimeout(300);
     assert(page.url().includes('/login'), 'Unauthenticated access to /admin/topics must redirect to /login');
 
-    // Test 1-click admin sign-in on login page
-    const oneClickAdmin = page.locator('button:has-text("1-Click Sign In as Administrator")');
-    await oneClickAdmin.click();
-    await page.waitForURL(url => url.pathname.includes('/admin'));
-    assert(await page.locator('.header-actions .badge-role:has-text("ADMIN")').isVisible(), '1-Click admin sign in should log in as Admin');
-    console.log('✓ Test 5 passed: Sign out, route guards, and 1-click admin login verified');
+    // Authenticate with valid admin credentials via the primary sign-in form
+    await page.locator('#username').fill('admin');
+    await page.locator('#password').fill('atul1234');
+    await page.click('button[type="submit"]');
+
+    // Verify return URL redirects back to intended protected page (/admin/topics)
+    await page.waitForURL(url => url.pathname.includes('/admin/topics'));
+    assert(await page.locator('.header-actions .badge-role:has-text("ADMIN")').isVisible(), 'Authenticated as Admin');
+    console.log('✓ Test 5 passed: Sign out, route guards, removed insecure controls, and protected route return verified');
 
     console.log('\n🎉 ALL 5 PLAYWRIGHT E2E TESTS PASSED SUCCESSFULLY!');
   } catch (err) {

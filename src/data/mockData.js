@@ -5,8 +5,7 @@ export const initialMockData = {
       username: 'admin',
       name: 'System Administrator',
       role: 'ADMIN',
-      status: 'ACTIVE',
-      password: 'atul1234'
+      status: 'ACTIVE'
     }
   ],
   topics: [],

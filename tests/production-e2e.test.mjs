@@ -70,15 +70,15 @@ async function runProductionTests() {
     console.log('✓ Test 2 passed: Public catalog state and unauthenticated footer reset guard verified');
 
     // =========================================================================
-    // Test 3: Admin Authentication & Password Enforcement (atul1234)
+    // Test 3: Admin Authentication & Insecure Credential Card Removal
     // =========================================================================
     console.log('\nTest 3: Verifying Admin Authentication & Password Hardening...');
     await page.goto(`${BASE_URL}/login`);
-    await page.waitForSelector('h1:has-text("Sign In to ResourceHub")');
+    await page.waitForSelector('h1:has-text("Sign in to ResourceHub")');
 
-    // Verify password is masked in the admin credential helper card
-    const cardPasswordText = await page.locator('.card:has-text("Administrator Account")').textContent();
-    assert(!cardPasswordText.includes('atul1234'), 'Plaintext password must not be rendered on the login card');
+    // Verify default credential helper card is completely removed
+    const credentialCardCount = await page.locator('.card:has-text("Administrator Account")').count();
+    assert.strictEqual(credentialCardCount, 0, 'Default credential helper card must not be rendered on the login page');
 
     // Test rejection of incorrect password
     const usernameInput = page.locator('#username');
@@ -98,7 +98,7 @@ async function runProductionTests() {
 
     // Verify Admin role badge in header
     await page.waitForSelector('.header-actions .badge-role:has-text("ADMIN")');
-    console.log('✓ Test 3 passed: Password rejection, SHA-256 validation, and authenticated session verified');
+    console.log('✓ Test 3 passed: Insecure credential card absence, password rejection, and authenticated session verified');
 
     // =========================================================================
     // Test 4: Academic Governance - Topic Creation & Public Visibility
@@ -182,14 +182,19 @@ async function runProductionTests() {
     console.log('✓ Test 7 passed: Sign out and all protected route guards verified');
 
     // =========================================================================
-    // Test 8: 1-Click Quick Admin Sign-In
+    // Test 8: Insecure 1-Click Removal & Return URL Authentication Flow
     // =========================================================================
-    console.log('\nTest 8: Testing 1-Click Admin Sign-In Flow...');
+    console.log('\nTest 8: Testing Insecure 1-Click Removal & Protected Return Flow...');
     const oneClickBtn = page.locator('button:has-text("1-Click Sign In as Administrator")');
-    await oneClickBtn.click();
+    assert.strictEqual(await oneClickBtn.count(), 0, '1-Click admin button must be removed from production login page');
+
+    // Sign in using the primary login form with valid credentials
+    await page.locator('#username').fill('admin');
+    await page.locator('#password').fill('atul1234');
+    await page.click('button[type="submit"]');
     await page.waitForURL(url => url.pathname.includes('/admin'));
-    assert(await page.locator('.header-actions .badge-role:has-text("ADMIN")').isVisible(), '1-Click admin button should immediately grant Admin session');
-    console.log('✓ Test 8 passed: 1-Click administrator sign-in verified');
+    assert(await page.locator('.header-actions .badge-role:has-text("ADMIN")').isVisible(), 'Primary sign-in grants Admin session');
+    console.log('✓ Test 8 passed: 1-Click button removed and primary authentication verified');
 
     // =========================================================================
     // Console & Uncaught Exception Inspection
