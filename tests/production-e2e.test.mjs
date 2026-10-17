@@ -185,6 +185,11 @@ async function runProductionTests() {
     // Test 8: Insecure 1-Click Removal & Return URL Authentication Flow
     // =========================================================================
     console.log('\nTest 8: Testing Insecure 1-Click Removal & Protected Return Flow...');
+    // Attempt direct access to protected admin route while logged out
+    await page.goto(`${BASE_URL}/admin/topics`);
+    await page.waitForTimeout(300);
+    assert(page.url().includes('/login'), 'Unauthenticated access to /admin/topics must redirect to /login');
+
     const oneClickBtn = page.locator('button:has-text("1-Click Sign In as Administrator")');
     assert.strictEqual(await oneClickBtn.count(), 0, '1-Click admin button must be removed from production login page');
 
@@ -192,9 +197,9 @@ async function runProductionTests() {
     await page.locator('#username').fill('admin');
     await page.locator('#password').fill('atul1234');
     await page.click('button[type="submit"]');
-    await page.waitForURL(url => url.pathname.includes('/admin'));
+    await page.waitForURL(url => url.pathname.includes('/admin/topics'));
     assert(await page.locator('.header-actions .badge-role:has-text("ADMIN")').isVisible(), 'Primary sign-in grants Admin session');
-    console.log('✓ Test 8 passed: 1-Click button removed and primary authentication verified');
+    console.log('✓ Test 8 passed: 1-Click button removed and primary authentication with return URL verified');
 
     // =========================================================================
     // Console & Uncaught Exception Inspection
