@@ -40,6 +40,10 @@
   --color-pptx-bg: #fff7ed;
   --color-pptx-border: #fed7aa;
 
+  --color-docx-text: #1e40af;
+  --color-docx-bg: #eff6ff;
+  --color-docx-border: #bfdbfe;
+
   /* Typography */
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;

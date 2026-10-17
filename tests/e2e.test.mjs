@@ -298,7 +298,49 @@ async function runTests() {
     }
     console.log('✓ Test 10 passed: PDF resource viewing verified');
 
-    console.log('\n🎉 ALL 10 PLAYWRIGHT E2E TESTS PASSED SUCCESSFULLY!');
+    // -------------------------------------------------------------
+    // Test 11: DOC/DOCX & PPTX Resource Support and Google Docs Viewer
+    // -------------------------------------------------------------
+    console.log('Test 11: Word & Presentation Support via Google Docs Viewer...');
+    // Sign out if currently logged in
+    const activeSignOutBtn = page.locator('button:has-text("Sign Out")');
+    if (await activeSignOutBtn.isVisible()) {
+      await activeSignOutBtn.click();
+      await page.waitForURL(url => url.pathname.includes('/login'));
+    } else {
+      await page.goto(`${BASE_URL}/login`);
+    }
+
+    await page.locator('#username').fill(testFacUsername);
+    await page.locator('#password').fill(testFacResetPassword);
+    await page.click('button[type="submit"]');
+    await page.waitForURL(url => url.pathname.includes('/facilitator'));
+
+    await page.goto(`${BASE_URL}/facilitator/resources/new`);
+    await page.waitForSelector('h1:has-text("Upload Academic Resource")');
+
+    // Verify input accept attribute includes .doc and .docx
+    const fileInput = page.locator('#fileUpload');
+    const acceptVal = await fileInput.getAttribute('accept');
+    assert(acceptVal.includes('.doc') && acceptVal.includes('.docx'), 'File input accept attribute must include .doc and .docx');
+
+    const fileLabel = await page.locator('label[for="fileUpload"]').textContent();
+    assert(fileLabel.includes('.doc') && fileLabel.includes('.docx'), 'File input label must list .doc and .docx formats');
+    console.log('  ✓ Facilitator upload form accepts .doc and .docx files');
+
+    // Verify Topic Detail format filter includes DOCX
+    await page.goto(`${BASE_URL}/topics`);
+    const firstTopicCard = page.locator('.topics-grid .card').first();
+    await firstTopicCard.locator('a, button').first().click();
+    await page.waitForSelector('h1');
+
+    const docxFilterBtn = page.locator('button:has-text("DOCX")');
+    assert(await docxFilterBtn.isVisible(), 'Format selector pills must include DOCX filter');
+    console.log('  ✓ Topics detail page includes DOCX filter pill');
+
+    console.log('✓ Test 11 passed: DOC/DOCX upload form acceptance and catalog filtering verified');
+
+    console.log('\n🎉 ALL 11 PLAYWRIGHT E2E TESTS PASSED SUCCESSFULLY!');
   } catch (err) {
     console.error('❌ Playwright Test Failure:', err);
     process.exit(1);

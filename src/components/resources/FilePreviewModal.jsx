@@ -19,8 +19,24 @@ export const FilePreviewModal = ({ resource, isOpen, onClose }) => {
 
   if (!isOpen || !resource) return null;
 
-  const isPdf = resource.fileType.toUpperCase() === 'PDF';
+  const fileType = (resource.fileType || '').toUpperCase();
+  const isPdf = fileType === 'PDF';
+  const isGoogleDocViewable = ['PPT', 'PPTX', 'DOC', 'DOCX'].includes(fileType);
   const hasSafeUrl = isSafeUrl(resource.fileUrl);
+
+  const isPublicHttpsUrl = typeof resource.fileUrl === 'string' && resource.fileUrl.startsWith('https://');
+  const googleViewerUrl = isPublicHttpsUrl
+    ? `https://docs.google.com/viewer?embedded=true&url=${encodeURIComponent(resource.fileUrl)}`
+    : null;
+
+  const previewUrl = isPdf ? resource.fileUrl : googleViewerUrl;
+
+  const getBadgeClass = (type) => {
+    const t = (type || '').toUpperCase();
+    if (t === 'PDF') return 'badge badge-pdf';
+    if (t === 'DOC' || t === 'DOCX') return 'badge badge-docx';
+    return 'badge badge-pptx';
+  };
 
   const handleDownload = () => {
     downloadFile(resource.fileUrl, resource.storedFilename || resource.originalFilename);
@@ -39,7 +55,7 @@ export const FilePreviewModal = ({ resource, isOpen, onClose }) => {
       <div className="modal-dialog modal-dialog-large">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            <span className={isPdf ? 'badge badge-pdf' : 'badge badge-pptx'}>
+            <span className={getBadgeClass(resource.fileType)}>
               {resource.fileType}
             </span>
             <h2 id="preview-modal-title" className="modal-title" style={{ fontSize: 'var(--text-base)' }}>
@@ -57,11 +73,11 @@ export const FilePreviewModal = ({ resource, isOpen, onClose }) => {
         </div>
 
         <div className="modal-body" style={{ padding: 'var(--space-4)' }}>
-          {isPdf ? (
+          {isPdf || (isGoogleDocViewable && googleViewerUrl) ? (
             <div style={{ width: '100%', height: '560px', backgroundColor: '#f1f5f9', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
               {hasSafeUrl ? (
                 <iframe
-                  src={resource.fileUrl}
+                  src={previewUrl}
                   title={resource.title}
                   width="100%"
                   height="100%"
@@ -75,17 +91,27 @@ export const FilePreviewModal = ({ resource, isOpen, onClose }) => {
             </div>
           ) : (
             <div className="state-box" style={{ padding: 'var(--space-12) var(--space-6)' }}>
-              <div className="state-icon" style={{ backgroundColor: 'var(--color-pptx-bg)', color: 'var(--color-pptx-text)' }}>
+              <div
+                className="state-icon"
+                style={{
+                  backgroundColor: ['DOC', 'DOCX'].includes(fileType)
+                    ? 'var(--color-docx-bg)'
+                    : 'var(--color-pptx-bg)',
+                  color: ['DOC', 'DOCX'].includes(fileType)
+                    ? 'var(--color-docx-text)'
+                    : 'var(--color-pptx-text)'
+                }}
+              >
                 <FileText size={28} />
               </div>
-              <h3 className="state-title">Presentation Slide Deck</h3>
+              <h3 className="state-title">{resource.fileType} Document</h3>
               <p className="state-description">
-                PowerPoint slides (.pptx) are optimized for desktop presentation software. Download the file to view and present all animations and lecture notes.
+                Direct in-browser preview requires an active network connection to Google Docs Viewer. Download the document to view and edit it locally.
               </p>
               <div style={{ marginTop: 'var(--space-4)' }}>
                 <button onClick={handleDownload} className="btn btn-primary">
                   <Download size={16} />
-                  <span>Download Presentation ({resource.fileSize})</span>
+                  <span>Download File ({resource.fileSize})</span>
                 </button>
               </div>
             </div>
@@ -111,9 +137,9 @@ export const FilePreviewModal = ({ resource, isOpen, onClose }) => {
         </div>
 
         <div className="modal-footer">
-          {isPdf && hasSafeUrl && (
+          {previewUrl && hasSafeUrl && (
             <a
-              href={resource.fileUrl}
+              href={previewUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-secondary btn-sm"

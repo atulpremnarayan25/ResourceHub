@@ -23,7 +23,16 @@ export const resourceService = {
 
       if (topicId) query = query.eq('topic_id', topicId);
       if (uploader) query = query.eq('uploaded_by', uploader);
-      if (fileType && fileType !== 'ALL') query = query.eq('file_type', fileType.toUpperCase());
+      if (fileType && fileType !== 'ALL') {
+        const ft = fileType.toUpperCase();
+        if (ft === 'DOCX') {
+          query = query.in('file_type', ['DOC', 'DOCX']);
+        } else if (ft === 'PPTX') {
+          query = query.in('file_type', ['PPT', 'PPTX']);
+        } else {
+          query = query.eq('file_type', ft);
+        }
+      }
 
       const { data, error } = await query;
       if (error) {
@@ -50,7 +59,14 @@ export const resourceService = {
     }
 
     if (fileType && fileType !== 'ALL') {
-      list = list.filter((r) => r.fileType.toUpperCase() === fileType.toUpperCase());
+      const ft = fileType.toUpperCase();
+      if (ft === 'DOCX') {
+        list = list.filter((r) => ['DOC', 'DOCX'].includes(r.fileType.toUpperCase()));
+      } else if (ft === 'PPTX') {
+        list = list.filter((r) => ['PPT', 'PPTX'].includes(r.fileType.toUpperCase()));
+      } else {
+        list = list.filter((r) => r.fileType.toUpperCase() === ft);
+      }
     }
 
     list = filterResources(list, searchQuery);
@@ -100,9 +116,9 @@ export const resourceService = {
     if (!file) throw new Error('Please select a file to upload.');
 
     const extension = file.name.split('.').pop().toLowerCase();
-    const allowed = ['pdf', 'ppt', 'pptx'];
+    const allowed = ['pdf', 'ppt', 'pptx', 'doc', 'docx'];
     if (!allowed.includes(extension)) {
-      throw new Error('Invalid file format. Only PDF, PPT, and PPTX files are allowed.');
+      throw new Error('Invalid file format. Only PDF, PPT, PPTX, DOC, and DOCX files are allowed.');
     }
 
     // Maximum 15 MB check
@@ -111,12 +127,11 @@ export const resourceService = {
       throw new Error('File exceeds the 15 MB size limit.');
     }
 
-    const normalizedExt = extension === 'pdf' ? 'pdf' : 'pptx';
-    const fileType = extension === 'pdf' ? 'PDF' : 'PPTX';
+    const fileType = extension.toUpperCase();
     const storedFilename = generateStoredFilename(
       uploader.username,
       title,
-      normalizedExt,
+      extension,
       new Date()
     );
 

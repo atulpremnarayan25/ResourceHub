@@ -156,7 +156,7 @@ export const TopicDetailPage = () => {
 
         {/* Format Selector Pills */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
-          {['ALL', 'PDF', 'PPTX'].map((type) => (
+          {['ALL', 'PDF', 'PPTX', 'DOCX'].map((type) => (
             <button
               key={type}
               type="button"

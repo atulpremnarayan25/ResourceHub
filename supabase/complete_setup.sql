@@ -43,7 +43,7 @@ CREATE TABLE public.resources (
   title TEXT NOT NULL,
   original_filename TEXT NOT NULL,
   stored_filename TEXT NOT NULL,
-  file_type TEXT NOT NULL CHECK (file_type IN ('PDF', 'PPT', 'PPTX')),
+  file_type TEXT NOT NULL CHECK (file_type IN ('PDF', 'PPT', 'PPTX', 'DOC', 'DOCX')),
   file_size TEXT NOT NULL,
   file_url TEXT NOT NULL,
   uploaded_by TEXT NOT NULL,
@@ -139,7 +139,9 @@ VALUES (
   ARRAY[
     'application/pdf',
     'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ]
 )
 ON CONFLICT (id) DO UPDATE SET
@@ -148,7 +150,9 @@ ON CONFLICT (id) DO UPDATE SET
   allowed_mime_types = ARRAY[
     'application/pdf',
     'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ];
 
 -- Storage Object Policies

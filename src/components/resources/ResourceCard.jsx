@@ -17,7 +17,12 @@ export const ResourceCard = ({
   const [likePending, setLikePending] = useState(false);
 
   const isStudent = role === 'STUDENT';
-  const isPdf = resource.fileType.toUpperCase() === 'PDF';
+  const getBadgeClass = (type) => {
+    const t = (type || '').toUpperCase();
+    if (t === 'PDF') return 'badge badge-pdf';
+    if (t === 'DOC' || t === 'DOCX') return 'badge badge-docx';
+    return 'badge badge-pptx';
+  };
 
   const handleLikeClick = async () => {
     if (!isStudent) {
@@ -43,7 +48,7 @@ export const ResourceCard = ({
       <div className="resource-card">
         <div className="resource-main">
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
-            <span className={isPdf ? 'badge badge-pdf' : 'badge badge-pptx'}>
+            <span className={getBadgeClass(resource.fileType)}>
               {resource.fileType}
             </span>
             {resource.topicName && (

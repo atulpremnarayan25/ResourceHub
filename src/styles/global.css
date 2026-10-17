@@ -244,6 +244,12 @@ button:disabled {
   border: 1px solid var(--color-pptx-border);
 }
 
+.badge-docx {
+  background-color: var(--color-docx-bg);
+  color: var(--color-docx-text);
+  border: 1px solid var(--color-docx-border);
+}
+
 .badge-role {
   background-color: var(--color-primary-subtle);
   color: var(--color-primary);

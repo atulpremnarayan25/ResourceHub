@@ -40,7 +40,7 @@ export const UploadResourcePage = () => {
   const fileExt = selectedFile
     ? selectedFile.name.split('.').pop().toLowerCase()
     : 'pdf';
-  const cleanExt = ['pdf', 'ppt', 'pptx'].includes(fileExt) ? fileExt : 'pdf';
+  const cleanExt = ['pdf', 'ppt', 'pptx', 'doc', 'docx'].includes(fileExt) ? fileExt : 'pdf';
 
   // Live preview of the academic stored filename
   const liveStoredFilename = currentUser
@@ -52,10 +52,10 @@ export const UploadResourcePage = () => {
     if (!file) return;
 
     const ext = file.name.split('.').pop().toLowerCase();
-    const validExts = ['pdf', 'ppt', 'pptx'];
+    const validExts = ['pdf', 'ppt', 'pptx', 'doc', 'docx'];
 
     if (!validExts.includes(ext)) {
-      setError('Invalid file format. Please upload a PDF, PPT, or PPTX file.');
+      setError('Invalid file format. Please upload a PDF, PPT, PPTX, DOC, or DOCX file.');
       setSelectedFile(null);
       e.target.value = '';
       return;
@@ -97,7 +97,7 @@ export const UploadResourcePage = () => {
       return;
     }
     if (!selectedFile) {
-      setError('Please choose a PDF or PPTX document to upload.');
+      setError('Please choose a document to upload (PDF, PPT, PPTX, DOC, or DOCX).');
       return;
     }
 
@@ -183,7 +183,7 @@ export const UploadResourcePage = () => {
         {/* File Picker */}
         <div className="form-group">
           <label className="form-label" htmlFor="fileUpload">
-            Document File (.pdf, .ppt, .pptx) <span style={{ color: 'var(--color-danger)' }}>*</span>
+            Document File (.pdf, .ppt, .pptx, .doc, .docx) <span style={{ color: 'var(--color-danger)' }}>*</span>
           </label>
           <div
             style={{
@@ -198,7 +198,7 @@ export const UploadResourcePage = () => {
             <input
               id="fileUpload"
               type="file"
-              accept=".pdf,.ppt,.pptx"
+              accept=".pdf,.ppt,.pptx,.doc,.docx"
               onChange={handleFileChange}
               disabled={submitting}
               style={{
