@@ -34,14 +34,3 @@ export const saveDatabase = (db) => {
   }
 };
 
-/**
- * Reset database to clean initial state with only admin account.
- */
-export const resetDatabase = () => {
-  try {
-    localStorage.setItem(DB_KEY, JSON.stringify(initialMockData));
-    localStorage.removeItem('resourcehub_active_user');
-  } catch (err) {
-    console.error('Failed to reset database:', err);
-  }
-};
