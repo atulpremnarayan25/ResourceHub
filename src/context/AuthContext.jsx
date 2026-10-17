@@ -34,6 +34,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    try {
+      localStorage.removeItem('resourcehub_credential_hashes');
+    } catch {}
     setCurrentUser(null);
   };
 

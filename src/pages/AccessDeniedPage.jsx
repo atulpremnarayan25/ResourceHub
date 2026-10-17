@@ -49,7 +49,7 @@ export const AccessDeniedPage = () => {
           </span>
         </div>
         <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)', margin: 0 }}>
-          Tip: In this course demonstration, you can switch roles directly using the top-right header role selector or return to the course topics directory.
+          If you require elevated access to this section, please sign in with an authorized Facilitator or Administrator account, or return to the course topics directory.
         </p>
       </div>
 

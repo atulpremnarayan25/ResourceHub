@@ -170,12 +170,6 @@
   gap: var(--space-1);
 }
 
-.footer-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
 /* Grids */
 .topics-grid {
   display: grid;

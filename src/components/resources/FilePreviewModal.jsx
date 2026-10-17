@@ -81,6 +81,7 @@ export const FilePreviewModal = ({ resource, isOpen, onClose }) => {
                   title={resource.title}
                   width="100%"
                   height="100%"
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                   style={{ border: 'none', display: 'block' }}
                 />
               ) : (

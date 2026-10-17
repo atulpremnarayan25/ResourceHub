@@ -106,12 +106,11 @@ export const adminService = {
           throw new Error(error.message);
         }
       } else {
-        // Cache password hash in localStorage for client-side fallback when Supabase lacks password_hash column
         try {
-          if (typeof window !== 'undefined' && window.localStorage) {
-            const hashes = JSON.parse(window.localStorage.getItem('resourcehub_credential_hashes') || '{}');
-            hashes[cleanUsername] = passwordHash;
-            window.localStorage.setItem('resourcehub_credential_hashes', JSON.stringify(hashes));
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            const creds = JSON.parse(window.sessionStorage.getItem('resourcehub_session_credentials') || '{}');
+            creds[cleanUsername] = passwordHash;
+            window.sessionStorage.setItem('resourcehub_session_credentials', JSON.stringify(creds));
           }
         } catch {}
 
@@ -142,10 +141,10 @@ export const adminService = {
     };
 
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const hashes = JSON.parse(window.localStorage.getItem('resourcehub_credential_hashes') || '{}');
-        hashes[cleanUsername] = passwordHash;
-        window.localStorage.setItem('resourcehub_credential_hashes', JSON.stringify(hashes));
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const creds = JSON.parse(window.sessionStorage.getItem('resourcehub_session_credentials') || '{}');
+        creds[cleanUsername] = passwordHash;
+        window.sessionStorage.setItem('resourcehub_session_credentials', JSON.stringify(creds));
       }
     } catch {}
 
@@ -262,7 +261,7 @@ export const adminService = {
     if (isSupabaseConfigured) {
       const { data: user, error: fetchErr } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, username, name, role, status')
         .eq('id', id)
         .single();
 
@@ -275,19 +274,18 @@ export const adminService = {
           .from('profiles')
           .update({ password_hash: passwordHash })
           .eq('id', id)
-          .select()
+          .select('id, username, name, role, status')
           .single();
 
         if (updateErr && !updateErr.message?.includes('password_hash')) {
           throw new Error(updateErr.message);
         }
 
-        // Cache reset password hash for client-side enforcement
         try {
-          if (typeof window !== 'undefined' && window.localStorage) {
-            const hashes = JSON.parse(window.localStorage.getItem('resourcehub_credential_hashes') || '{}');
-            hashes[user.username] = passwordHash;
-            window.localStorage.setItem('resourcehub_credential_hashes', JSON.stringify(hashes));
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            const creds = JSON.parse(window.sessionStorage.getItem('resourcehub_session_credentials') || '{}');
+            creds[user.username.toLowerCase()] = passwordHash;
+            window.sessionStorage.setItem('resourcehub_session_credentials', JSON.stringify(creds));
           }
         } catch {}
 
@@ -309,10 +307,10 @@ export const adminService = {
     }
 
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const hashes = JSON.parse(window.localStorage.getItem('resourcehub_credential_hashes') || '{}');
-        hashes[facilitator.username] = passwordHash;
-        window.localStorage.setItem('resourcehub_credential_hashes', JSON.stringify(hashes));
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const creds = JSON.parse(window.sessionStorage.getItem('resourcehub_session_credentials') || '{}');
+        creds[facilitator.username.toLowerCase()] = passwordHash;
+        window.sessionStorage.setItem('resourcehub_session_credentials', JSON.stringify(creds));
       }
     } catch {}
 

@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/login-auth.test.mjs && node tests/e2e.test.mjs",
+    "test": "node tests/unit/naming-convention.test.mjs && node tests/unit/security.test.mjs && node tests/login-auth.test.mjs && node tests/e2e.test.mjs && node tests/e2e/role-guards.test.mjs",
+    "test:unit": "node tests/unit/naming-convention.test.mjs && node tests/unit/security.test.mjs",
+    "test:rbac": "node tests/e2e/role-guards.test.mjs",
     "test:login": "node tests/login-auth.test.mjs",
     "test:e2e": "node tests/e2e.test.mjs",
     "test:prod": "node tests/production-e2e.test.mjs",
@@ -18,11 +20,11 @@
     "lucide-react": "^1.16.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.0"
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "playwright": "^1.64.1",
-    "vite": "^5.4.11"
+    "vite": "^6.4.4"
   }
 }

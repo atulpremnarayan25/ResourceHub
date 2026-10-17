@@ -7,6 +7,7 @@ import { likeService } from '../services/likeService';
 import { ResourceCard } from '../components/resources/ResourceCard';
 import { LoadingSpinner, EmptyState, AlertBanner } from '../components/common/UIFeedback';
 import { useAuth } from '../context/AuthContext';
+import { useDebounce } from '../utils/useDebounce';
 
 export const TopicDetailPage = () => {
   const { topicId } = useParams();
@@ -16,32 +17,43 @@ export const TopicDetailPage = () => {
   const [resources, setResources] = useState([]);
   const [likedIds, setLikedIds] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [fileTypeFilter, setFileTypeFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadTopicAndResources = async (isInitial = false) => {
-    try {
-      if (isInitial) setLoading(true);
-      setError('');
-      const [tData, rList, likes] = await Promise.all([
-        topicService.getTopicById(topicId),
-        resourceService.getResources({ topicId, searchQuery, fileType: fileTypeFilter }),
-        currentUser ? likeService.getLikedResourceIds(currentUser.id) : []
-      ]);
-      setTopic(tData);
-      setResources(rList);
-      setLikedIds(likes);
-    } catch (err) {
-      setError(err.message || 'Failed to load topic details.');
-    } finally {
-      if (isInitial) setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadTopicAndResources(!topic);
-  }, [topicId, fileTypeFilter, searchQuery]);
+    let cancelled = false;
+    const loadTopicAndResources = async () => {
+      try {
+        if (!topic) setLoading(true);
+        setError('');
+        const [tData, rList, likes] = await Promise.all([
+          topicService.getTopicById(topicId),
+          resourceService.getResources({ topicId, searchQuery: debouncedSearchQuery, fileType: fileTypeFilter }),
+          currentUser ? likeService.getLikedResourceIds(currentUser.id) : []
+        ]);
+        if (!cancelled) {
+          setTopic(tData);
+          setResources(rList);
+          setLikedIds(likes);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || 'Failed to load topic details.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadTopicAndResources();
+    return () => {
+      cancelled = true;
+    };
+  }, [topicId, fileTypeFilter, debouncedSearchQuery]);
 
   const handleToggleLike = async (resourceId) => {
     if (!currentUser) return;

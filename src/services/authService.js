@@ -34,9 +34,25 @@ export const authService = {
     }
 
     if (isSupabaseConfigured) {
+      // 1. Attempt server-side RPC authentication (zero password hash exposure over network)
+      const { data: matchedUsers, error: rpcError } = await supabase
+        .rpc('verify_user_credentials', {
+          p_username: cleanUsername,
+          p_password_hash: passwordHash
+        });
+
+      if (!rpcError && Array.isArray(matchedUsers) && matchedUsers.length > 0) {
+        const verifiedUser = matchedUsers[0];
+        if (verifiedUser.status === 'DISABLED') {
+          throw new Error('This account has been disabled by the administrator.');
+        }
+        return mapProfileFromDb(verifiedUser);
+      }
+
+      // 2. Query non-sensitive profile columns to provide helpful feedback on status/existence
       const { data: user, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, username, name, role, status')
         .ilike('username', cleanUsername)
         .maybeSingle();
 
@@ -47,23 +63,25 @@ export const authService = {
       } else if (user.status === 'DISABLED') {
         throw new Error('This account has been disabled by the administrator.');
       } else {
-        // Enforce strict password verification
-        let effectiveHash = user.password_hash;
-        if (!effectiveHash) {
-          try {
-            if (typeof window !== 'undefined' && window.localStorage) {
-              const hashes = JSON.parse(window.localStorage.getItem('resourcehub_credential_hashes') || '{}');
-              effectiveHash = hashes[cleanUsername];
-            }
-          } catch {}
+        // If RPC was deployed and returned no match, reject with incorrect password
+        if (!rpcError) {
+          throw new Error('Incorrect password. Please try again.');
         }
 
-        if (effectiveHash) {
-          if (effectiveHash !== passwordHash) {
+        // When RPC is not yet deployed, verify against active session credentials or legacy seeds
+        let sessionHash = null;
+        try {
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            const creds = JSON.parse(window.sessionStorage.getItem('resourcehub_session_credentials') || '{}');
+            sessionHash = creds[cleanUsername];
+          }
+        } catch {}
+
+        if (sessionHash) {
+          if (sessionHash !== passwordHash) {
             throw new Error('Incorrect password. Please try again.');
           }
         } else {
-          // Fallback hashes for legacy seed accounts (atul1234 or fac1234)
           const validLegacyHashes = [
             ADMIN_PASSWORD_HASH,
             '2c3e5b0a72f6317d4187fada1af43aa74b6a510757c3d3aa3eff14c8f4dd6889',
@@ -92,18 +110,17 @@ export const authService = {
     }
 
     // Enforce strict password verification in offline fallback mode
-    let fallbackEffectiveHash = user.password_hash;
-    if (!fallbackEffectiveHash) {
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          const hashes = JSON.parse(window.localStorage.getItem('resourcehub_credential_hashes') || '{}');
-          fallbackEffectiveHash = hashes[cleanUsername];
-        }
-      } catch {}
-    }
+    let fallbackSessionHash = null;
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const creds = JSON.parse(window.sessionStorage.getItem('resourcehub_session_credentials') || '{}');
+        fallbackSessionHash = creds[cleanUsername];
+      }
+    } catch {}
 
-    if (fallbackEffectiveHash) {
-      if (fallbackEffectiveHash !== passwordHash) {
+    const effectiveHash = user.password_hash || fallbackSessionHash;
+    if (effectiveHash) {
+      if (effectiveHash !== passwordHash) {
         throw new Error('Incorrect password. Please try again.');
       }
     } else if (user.password) {
@@ -210,10 +227,10 @@ export const authService = {
         }
       } else {
         try {
-          if (typeof window !== 'undefined' && window.localStorage) {
-            const hashes = JSON.parse(window.localStorage.getItem('resourcehub_credential_hashes') || '{}');
-            hashes[cleanUsername] = passwordHash;
-            window.localStorage.setItem('resourcehub_credential_hashes', JSON.stringify(hashes));
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            const creds = JSON.parse(window.sessionStorage.getItem('resourcehub_session_credentials') || '{}');
+            creds[cleanUsername] = passwordHash;
+            window.sessionStorage.setItem('resourcehub_session_credentials', JSON.stringify(creds));
           }
         } catch {}
 
@@ -240,10 +257,10 @@ export const authService = {
     };
 
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const hashes = JSON.parse(window.localStorage.getItem('resourcehub_credential_hashes') || '{}');
-        hashes[cleanUsername] = passwordHash;
-        window.localStorage.setItem('resourcehub_credential_hashes', JSON.stringify(hashes));
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const creds = JSON.parse(window.sessionStorage.getItem('resourcehub_session_credentials') || '{}');
+        creds[cleanUsername] = passwordHash;
+        window.sessionStorage.setItem('resourcehub_session_credentials', JSON.stringify(creds));
       }
     } catch {}
 

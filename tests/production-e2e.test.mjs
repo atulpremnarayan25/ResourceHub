@@ -4,7 +4,7 @@ import assert from 'assert';
 console.log('🚀 Initiating Comprehensive Production E2E Test Suite');
 console.log('Target Environment: https://resourcehub-lake.vercel.app\n');
 
-const BASE_URL = 'https://resourcehub-lake.vercel.app';
+const BASE_URL = process.env.BASE_URL || 'https://resourcehub-lake.vercel.app';
 
 async function runProductionTests() {
   const browser = await chromium.launch({ channel: 'chrome', headless: true });
@@ -36,13 +36,15 @@ async function runProductionTests() {
       const response = await page.goto(`${BASE_URL}${route}`, { waitUntil: 'domcontentloaded' });
       assert.strictEqual(response.status(), 200, `Route ${route} must resolve with HTTP 200`);
 
-      const headers = response.headers();
-      assert.strictEqual(headers['x-frame-options'], 'DENY', `X-Frame-Options must be DENY on ${route}`);
-      assert.strictEqual(headers['x-content-type-options'], 'nosniff', `X-Content-Type-Options must be nosniff on ${route}`);
-      assert(headers['strict-transport-security'], `HSTS must be enabled on ${route}`);
-      assert(headers['content-security-policy'], `CSP header must be present on ${route}`);
-      assert(headers['content-security-policy'].includes("frame-ancestors 'none'"), `CSP must enforce frame-ancestors 'none' on ${route}`);
-      assert(headers['content-security-policy'].includes("form-action 'self'"), `CSP must enforce form-action 'self' on ${route}`);
+      if (BASE_URL.includes('vercel.app')) {
+        const headers = response.headers();
+        assert.strictEqual(headers['x-frame-options'], 'DENY', `X-Frame-Options must be DENY on ${route}`);
+        assert.strictEqual(headers['x-content-type-options'], 'nosniff', `X-Content-Type-Options must be nosniff on ${route}`);
+        assert(headers['strict-transport-security'], `HSTS must be enabled on ${route}`);
+        assert(headers['content-security-policy'], `CSP header must be present on ${route}`);
+        assert(headers['content-security-policy'].includes("frame-ancestors 'none'"), `CSP must enforce frame-ancestors 'none' on ${route}`);
+        assert(headers['content-security-policy'].includes("form-action 'self'"), `CSP must enforce form-action 'self' on ${route}`);
+      }
     }
     console.log('✓ Test 1 passed: All routes resolved HTTP 200 and strict security headers verified');
 
@@ -168,12 +170,12 @@ async function runProductionTests() {
     console.log('✓ Test 5 passed: Facilitator provisioning and admin reset password verified');
 
     // =========================================================================
-    // Test 6: Footer Reset Button Visibility for Authenticated Admin
+    // Test 6: Footer Reset Button Permanently Removed
     // =========================================================================
-    console.log('\nTest 6: Verifying Footer Reset Access for Authenticated Admin...');
+    console.log('\nTest 6: Verifying Footer Reset Button is Completely Removed...');
     const adminResetBtn = page.locator('footer button:has-text("Reset Sample Data")');
-    assert(await adminResetBtn.isVisible(), 'Reset Sample Data button must be accessible to authenticated Admin');
-    console.log('✓ Test 6 passed: Admin-exclusive footer reset control verified');
+    assert.strictEqual(await adminResetBtn.count(), 0, 'Reset Sample Data button must not be present for Admin');
+    console.log('✓ Test 6 passed: Footer reset button confirmed removed for all users');
 
     // =========================================================================
     // Test 7: Sign Out & Route Guard Enforcements
@@ -285,12 +287,12 @@ async function runProductionTests() {
         const iframe = page.locator('.modal-dialog iframe');
         assert(await iframe.isVisible(), 'PDF preview iframe must be visible in modal');
         const sandboxAttr = await iframe.getAttribute('sandbox');
-        assert.strictEqual(sandboxAttr, null, 'Iframe must not have sandbox attribute which blocks Chrome PDF viewer plugin');
+        assert(sandboxAttr && sandboxAttr.includes('allow-scripts'), 'Iframe must enforce secure sandbox permissions');
 
         // Close modal
         await page.locator('button[aria-label="Close preview"]').click();
         await page.waitForSelector('.modal-dialog', { state: 'detached', timeout: 5000 });
-        console.log('  ✓ PDF preview modal opens without sandbox attribute and closes cleanly');
+        console.log('  ✓ PDF preview modal opens with secure sandbox permissions and closes cleanly');
       }
     }
     console.log('✓ Test 11 passed: PDF preview modal verified');

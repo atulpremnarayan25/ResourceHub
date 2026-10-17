@@ -5,7 +5,7 @@ import path from 'path';
 
 console.log('🚀 Starting ResourceHub Login UI/UX, Accessibility & Security Audit Test Suite\n');
 
-const BASE_URL = 'http://localhost:5174';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
 
 const VIEWPORTS = [
   { name: '1440x900 (Desktop)', width: 1440, height: 900 },

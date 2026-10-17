@@ -1,6 +1,7 @@
 import { getDatabase, saveDatabase } from './storage';
 import { generateStoredFilename } from '../utils/namingConvention';
 import { supabase, isSupabaseConfigured, mapResourceFromDb, isTableMissingError, logFallbackWarning } from '../lib/supabase';
+import { validateFileHeader } from '../utils/security';
 
 const filterResources = (list, searchQuery) => {
   if (!searchQuery || !searchQuery.trim()) return list;
@@ -127,6 +128,12 @@ export const resourceService = {
       throw new Error('File exceeds the 15 MB size limit.');
     }
 
+    // Defensive binary inspection: verify magic bytes before processing
+    const headerCheck = await validateFileHeader(file);
+    if (!headerCheck.valid) {
+      throw new Error(`File validation failed: ${headerCheck.reason}`);
+    }
+
     const fileType = extension.toUpperCase();
     const storedFilename = generateStoredFilename(
       uploader.username,
@@ -192,11 +199,25 @@ export const resourceService = {
     const topic = db.topics.find((t) => t.id === topicId);
     if (!topic) throw new Error('Selected topic does not exist.');
 
+    // Enforce 1 MB limit in local storage mode to prevent quota exhaustion
+    if (file.size > 1 * 1024 * 1024) {
+      throw new Error('Local simulation mode has a 1 MB file size limit to prevent browser storage quota errors.');
+    }
+
     let fileUrl = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
     try {
-      fileUrl = URL.createObjectURL(file);
+      fileUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Failed to encode file for local storage.'));
+        reader.readAsDataURL(file);
+      });
     } catch {
-      // fallback if objectURL unavailable
+      try {
+        fileUrl = URL.createObjectURL(file);
+      } catch {
+        // fallback to placeholder if both fail
+      }
     }
 
     const newResource = {

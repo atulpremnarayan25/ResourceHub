@@ -3,7 +3,7 @@ import assert from 'assert';
 
 console.log('🚀 Starting Clean-State Playwright E2E Test Suite');
 
-const BASE_URL = 'http://localhost:5174';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
 
 async function runTests() {
   const browser = await chromium.launch({ channel: 'chrome', headless: true });
@@ -282,7 +282,7 @@ async function runTests() {
       const iframe = page.locator('.modal-dialog iframe');
       assert(await iframe.isVisible(), 'PDF iframe must be visible in modal');
       const sandboxAttr = await iframe.getAttribute('sandbox');
-      assert.strictEqual(sandboxAttr, null, 'Iframe must not have sandbox attribute which blocks browser PDF plugin');
+      assert(sandboxAttr && sandboxAttr.includes('allow-scripts'), 'Iframe must enforce secure sandbox permissions');
 
       const iframeSrc = await iframe.getAttribute('src');
       assert(iframeSrc && iframeSrc.length > 0, 'PDF iframe must have valid source URL');

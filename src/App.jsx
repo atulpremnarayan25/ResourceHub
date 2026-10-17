@@ -1,21 +1,40 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute, RoleHomeRedirect } from './app/RouteGuards';
 import { AppLayout } from './components/layout/AppLayout';
+import { LoadingSpinner } from './components/common/UIFeedback';
 
-// Pages
+// Core Public Pages (bundled for immediate initial paint)
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { TopicsPage } from './pages/TopicsPage';
 import { TopicDetailPage } from './pages/TopicDetailPage';
-import { FacilitatorDashboardPage } from './pages/FacilitatorDashboardPage';
-import { UploadResourcePage } from './pages/UploadResourcePage';
-import { MyResourcesPage } from './pages/MyResourcesPage';
-import { AdminTopicsPage } from './pages/AdminTopicsPage';
-import { AdminFacilitatorsPage } from './pages/AdminFacilitatorsPage';
 import { AccessDeniedPage } from './pages/AccessDeniedPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+
+// Code-Split Protected Sections (lazy-loaded on demand)
+const FacilitatorDashboardPage = lazy(() =>
+  import('./pages/FacilitatorDashboardPage').then((m) => ({ default: m.FacilitatorDashboardPage }))
+);
+const UploadResourcePage = lazy(() =>
+  import('./pages/UploadResourcePage').then((m) => ({ default: m.UploadResourcePage }))
+);
+const MyResourcesPage = lazy(() =>
+  import('./pages/MyResourcesPage').then((m) => ({ default: m.MyResourcesPage }))
+);
+const AdminTopicsPage = lazy(() =>
+  import('./pages/AdminTopicsPage').then((m) => ({ default: m.AdminTopicsPage }))
+);
+const AdminFacilitatorsPage = lazy(() =>
+  import('./pages/AdminFacilitatorsPage').then((m) => ({ default: m.AdminFacilitatorsPage }))
+);
+
+const PageFallback = () => (
+  <div className="container" style={{ padding: 'var(--space-12) 0' }}>
+    <LoadingSpinner text="Loading section..." />
+  </div>
+);
 
 export const App = () => {
   return (
@@ -43,7 +62,9 @@ export const App = () => {
               path="/facilitator"
               element={
                 <ProtectedRoute allowedRoles={['FACILITATOR', 'ADMIN']}>
-                  <FacilitatorDashboardPage />
+                  <Suspense fallback={<PageFallback />}>
+                    <FacilitatorDashboardPage />
+                  </Suspense>
                 </ProtectedRoute>
               }
             />
@@ -51,7 +72,9 @@ export const App = () => {
               path="/facilitator/resources"
               element={
                 <ProtectedRoute allowedRoles={['FACILITATOR', 'ADMIN']}>
-                  <MyResourcesPage />
+                  <Suspense fallback={<PageFallback />}>
+                    <MyResourcesPage />
+                  </Suspense>
                 </ProtectedRoute>
               }
             />
@@ -59,7 +82,9 @@ export const App = () => {
               path="/facilitator/resources/new"
               element={
                 <ProtectedRoute allowedRoles={['FACILITATOR', 'ADMIN']}>
-                  <UploadResourcePage />
+                  <Suspense fallback={<PageFallback />}>
+                    <UploadResourcePage />
+                  </Suspense>
                 </ProtectedRoute>
               }
             />
@@ -77,7 +102,9 @@ export const App = () => {
               path="/admin/topics"
               element={
                 <ProtectedRoute allowedRoles={['ADMIN']}>
-                  <AdminTopicsPage />
+                  <Suspense fallback={<PageFallback />}>
+                    <AdminTopicsPage />
+                  </Suspense>
                 </ProtectedRoute>
               }
             />
@@ -85,7 +112,9 @@ export const App = () => {
               path="/admin/facilitators"
               element={
                 <ProtectedRoute allowedRoles={['ADMIN']}>
-                  <AdminFacilitatorsPage />
+                  <Suspense fallback={<PageFallback />}>
+                    <AdminFacilitatorsPage />
+                  </Suspense>
                 </ProtectedRoute>
               }
             />

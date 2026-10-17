@@ -5,30 +5,42 @@ import { topicService } from '../services/topicService';
 import { TopicCard } from '../components/topics/TopicCard';
 import { LoadingSpinner, EmptyState, AlertBanner } from '../components/common/UIFeedback';
 import { useAuth } from '../context/AuthContext';
+import { useDebounce } from '../utils/useDebounce';
 
 export const TopicsPage = () => {
   const [topics, setTopics] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { role } = useAuth();
 
-  const fetchTopics = async (query = '', isInitial = false) => {
-    try {
-      if (isInitial) setLoading(true);
-      setError('');
-      const list = await topicService.getTopics(query);
-      setTopics(list);
-    } catch (err) {
-      setError(err.message || 'Failed to load topics.');
-    } finally {
-      if (isInitial) setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchTopics(searchQuery, topics.length === 0);
-  }, [searchQuery]);
+    let cancelled = false;
+    const fetchTopics = async () => {
+      try {
+        if (topics.length === 0) setLoading(true);
+        setError('');
+        const list = await topicService.getTopics(debouncedSearchQuery);
+        if (!cancelled) {
+          setTopics(list);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || 'Failed to load topics.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchTopics();
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedSearchQuery]);
 
   return (
     <div className="container">

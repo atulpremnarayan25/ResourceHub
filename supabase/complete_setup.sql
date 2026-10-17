@@ -98,36 +98,101 @@ ALTER TABLE public.topics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.likes ENABLE ROW LEVEL SECURITY;
 
+-- Revoke direct selection of sensitive password hashes from public anon access
+REVOKE SELECT (password_hash) ON public.profiles FROM anon, authenticated;
+GRANT SELECT (id, username, name, role, status, created_at) ON public.profiles FROM anon, authenticated;
+
+-- PostgreSQL RPC Function for Secure Server-Side Credential Verification
+-- Evaluates password hash inside Postgres security definer; never leaks hash over REST
+CREATE OR REPLACE FUNCTION public.verify_user_credentials(p_username TEXT, p_password_hash TEXT)
+RETURNS TABLE (
+  id UUID,
+  username TEXT,
+  name TEXT,
+  role TEXT,
+  status TEXT
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT p.id, p.username, p.name, p.role, p.status
+  FROM public.profiles p
+  WHERE lower(p.username) = lower(trim(p_username))
+    AND p.password_hash = p_password_hash;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
+
 -- Profiles Policies
 CREATE POLICY "Allow public read access to profiles"
   ON public.profiles FOR SELECT USING (true);
-CREATE POLICY "Allow admin manage profiles"
-  ON public.profiles FOR ALL USING (true);
+
 CREATE POLICY "Allow student self registration"
   ON public.profiles FOR INSERT
-  WITH CHECK (role = 'STUDENT' AND status = 'ACTIVE');
+  WITH CHECK (
+    role = 'STUDENT' AND
+    status = 'ACTIVE' AND
+    length(username) >= 3 AND
+    username NOT IN ('admin', 'admin_dean')
+  );
+
+CREATE POLICY "Allow facilitator provisioning by admin"
+  ON public.profiles FOR INSERT
+  WITH CHECK (
+    role = 'FACILITATOR' AND
+    status = 'ACTIVE' AND
+    length(username) >= 3 AND
+    username NOT IN ('admin', 'admin_dean')
+  );
+
+CREATE POLICY "Allow profile status and password updates"
+  ON public.profiles FOR UPDATE
+  USING (true)
+  WITH CHECK (
+    role IN ('STUDENT', 'FACILITATOR')
+  );
+
+CREATE POLICY "Allow facilitator deletion"
+  ON public.profiles FOR DELETE
+  USING (role = 'FACILITATOR');
 
 -- Topics Policies
 CREATE POLICY "Allow public read access to topics"
   ON public.topics FOR SELECT USING (true);
+
 CREATE POLICY "Allow admin manage topics"
-  ON public.topics FOR ALL USING (true);
+  ON public.topics FOR INSERT
+  WITH CHECK (length(name) > 0);
+
+CREATE POLICY "Allow admin delete topics"
+  ON public.topics FOR DELETE
+  USING (true);
 
 -- Resources Policies
 CREATE POLICY "Allow public read access to resources"
   ON public.resources FOR SELECT USING (true);
+
 CREATE POLICY "Allow facilitator and admin insert resources"
-  ON public.resources FOR INSERT WITH CHECK (true);
+  ON public.resources FOR INSERT
+  WITH CHECK (
+    file_type IN ('PDF', 'PPT', 'PPTX', 'DOC', 'DOCX') AND
+    length(title) > 0 AND
+    length(file_url) > 0
+  );
+
 CREATE POLICY "Allow author and admin delete resources"
-  ON public.resources FOR DELETE USING (true);
+  ON public.resources FOR DELETE
+  USING (true);
 
 -- Likes Policies
 CREATE POLICY "Allow public read access to likes"
   ON public.likes FOR SELECT USING (true);
+
 CREATE POLICY "Allow students to insert likes"
-  ON public.likes FOR INSERT WITH CHECK (true);
+  ON public.likes FOR INSERT
+  WITH CHECK (length(student_id) > 0);
+
 CREATE POLICY "Allow students to delete own likes"
-  ON public.likes FOR DELETE USING (true);
+  ON public.likes FOR DELETE
+  USING (true);
 
 -- 9. Storage Bucket Configuration (Resources Bucket)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -162,7 +227,10 @@ CREATE POLICY "Allow public download of resources"
 
 CREATE POLICY "Allow authenticated facilitator upload"
   ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'resources');
+  WITH CHECK (
+    bucket_id = 'resources' AND
+    (LOWER(storage.extension(name)) IN ('pdf', 'pptx', 'ppt', 'docx', 'doc'))
+  );
 
 CREATE POLICY "Allow author or admin delete files"
   ON storage.objects FOR DELETE

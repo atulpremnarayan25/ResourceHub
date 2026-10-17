@@ -26,7 +26,11 @@ export const saveDatabase = (db) => {
   try {
     localStorage.setItem(DB_KEY, JSON.stringify(db));
   } catch (err) {
+    if (err.name === 'QuotaExceededError' || err.code === 22) {
+      throw new Error('Browser local storage quota exceeded. Please clear some uploaded resources or switch to cloud storage.');
+    }
     console.error('Failed to persist database to localStorage:', err);
+    throw err;
   }
 };
 

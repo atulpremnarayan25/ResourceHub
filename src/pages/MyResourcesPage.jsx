@@ -5,34 +5,47 @@ import { resourceService } from '../services/resourceService';
 import { useAuth } from '../context/AuthContext';
 import { ResourceCard } from '../components/resources/ResourceCard';
 import { LoadingSpinner, EmptyState, AlertBanner } from '../components/common/UIFeedback';
+import { useDebounce } from '../utils/useDebounce';
 
 export const MyResourcesPage = () => {
   const { currentUser, role } = useAuth();
   const [resources, setResources] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadResources = async () => {
-    if (!currentUser) return;
-    try {
-      setLoading(true);
-      setError('');
-      const list = await resourceService.getResources({
-        uploader: currentUser.username,
-        searchQuery
-      });
-      setResources(list);
-    } catch (err) {
-      setError(err.message || 'Failed to load your resources.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    if (!currentUser) return;
+    let cancelled = false;
+
+    const loadResources = async () => {
+      try {
+        if (resources.length === 0) setLoading(true);
+        setError('');
+        const list = await resourceService.getResources({
+          uploader: currentUser.username,
+          searchQuery: debouncedSearchQuery
+        });
+        if (!cancelled) {
+          setResources(list);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || 'Failed to load your resources.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
     loadResources();
-  }, [currentUser, searchQuery]);
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser, debouncedSearchQuery]);
 
   const handleDelete = async (id) => {
     try {
