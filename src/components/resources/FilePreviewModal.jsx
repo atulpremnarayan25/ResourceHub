@@ -61,12 +61,11 @@ export const FilePreviewModal = ({ resource, isOpen, onClose }) => {
             <div style={{ width: '100%', height: '560px', backgroundColor: '#f1f5f9', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
               {hasSafeUrl ? (
                 <iframe
-                  src={`${resource.fileUrl}#toolbar=0`}
+                  src={resource.fileUrl}
                   title={resource.title}
                   width="100%"
                   height="100%"
-                  sandbox="allow-scripts allow-downloads"
-                  style={{ border: 'none' }}
+                  style={{ border: 'none', display: 'block' }}
                 />
               ) : (
                 <div className="state-box" style={{ padding: 'var(--space-12) var(--space-6)' }}>

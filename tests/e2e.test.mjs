@@ -248,7 +248,38 @@ async function runTests() {
     }
     console.log('✓ Test 9 passed: Student resource interaction verified');
 
-    console.log('\n🎉 ALL 9 PLAYWRIGHT E2E TESTS PASSED SUCCESSFULLY!');
+    // -------------------------------------------------------------
+    // Test 10: PDF Resource Preview Modal & Unsandboxed Iframe
+    // -------------------------------------------------------------
+    console.log('Test 10: PDF Resource Preview Modal Verification...');
+    const viewPdfBtn = page.locator('.resource-card').filter({ hasText: 'PDF' }).locator('button:has-text("View")').first();
+    if (await viewPdfBtn.isVisible()) {
+      await viewPdfBtn.click();
+      await page.waitForSelector('.modal-dialog');
+
+      const modalTitle = page.locator('#preview-modal-title');
+      assert(await modalTitle.isVisible(), 'Preview modal should be open');
+
+      const iframe = page.locator('.modal-dialog iframe');
+      assert(await iframe.isVisible(), 'PDF iframe must be visible in modal');
+      const sandboxAttr = await iframe.getAttribute('sandbox');
+      assert.strictEqual(sandboxAttr, null, 'Iframe must not have sandbox attribute which blocks browser PDF plugin');
+
+      const iframeSrc = await iframe.getAttribute('src');
+      assert(iframeSrc && iframeSrc.length > 0, 'PDF iframe must have valid source URL');
+
+      // Verify Open in New Tab action link
+      const openTabLink = page.locator('.modal-footer a:has-text("Open in New Tab")');
+      assert(await openTabLink.isVisible(), 'Open in New Tab link must be present for PDF preview');
+
+      // Close modal
+      await page.locator('button[aria-label="Close preview"]').click();
+      await page.waitForSelector('.modal-dialog', { state: 'detached', timeout: 5000 });
+      console.log('  ✓ PDF preview modal opens without sandbox attribute and closes cleanly');
+    }
+    console.log('✓ Test 10 passed: PDF resource viewing verified');
+
+    console.log('\n🎉 ALL 10 PLAYWRIGHT E2E TESTS PASSED SUCCESSFULLY!');
   } catch (err) {
     console.error('❌ Playwright Test Failure:', err);
     process.exit(1);

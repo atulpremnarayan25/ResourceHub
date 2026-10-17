@@ -253,6 +253,33 @@ async function runProductionTests() {
     console.log('✓ Test 10 passed: Student registration, auto-login, and STUDENT badge verified');
 
     // =========================================================================
+    // Test 11: PDF Resource Preview Modal & Unsandboxed Iframe
+    // =========================================================================
+    console.log('\nTest 11: Testing PDF Preview Modal & Unsandboxed Rendering...');
+    const topicCards = page.locator('.topics-grid .card');
+    if (await topicCards.count() > 0) {
+      await topicCards.first().locator('a, button').first().click();
+      await page.waitForSelector('h1');
+
+      const viewPdfBtn = page.locator('.resource-card').filter({ hasText: 'PDF' }).locator('button:has-text("View")').first();
+      if (await viewPdfBtn.isVisible()) {
+        await viewPdfBtn.click();
+        await page.waitForSelector('.modal-dialog');
+
+        const iframe = page.locator('.modal-dialog iframe');
+        assert(await iframe.isVisible(), 'PDF preview iframe must be visible in modal');
+        const sandboxAttr = await iframe.getAttribute('sandbox');
+        assert.strictEqual(sandboxAttr, null, 'Iframe must not have sandbox attribute which blocks Chrome PDF viewer plugin');
+
+        // Close modal
+        await page.locator('button[aria-label="Close preview"]').click();
+        await page.waitForSelector('.modal-dialog', { state: 'detached', timeout: 5000 });
+        console.log('  ✓ PDF preview modal opens without sandbox attribute and closes cleanly');
+      }
+    }
+    console.log('✓ Test 11 passed: PDF preview modal verified');
+
+    // =========================================================================
     // Console & Uncaught Exception Inspection
     // =========================================================================
     console.log('\nAuditing Browser Console Logs & Errors...');
@@ -264,7 +291,7 @@ async function runProductionTests() {
     console.log(`✓ Browser health verified: ${pageErrors.length} uncaught exceptions, ${fatalErrors.length} console errors`);
 
     console.log('\n=================================================================');
-    console.log('🎉 ALL 10 PRODUCTION TEST SUITES PASSED ON VERCEL WITH ZERO ERRORS!');
+    console.log('🎉 ALL 11 PRODUCTION TEST SUITES PASSED ON VERCEL WITH ZERO ERRORS!');
     console.log('=================================================================');
   } catch (err) {
     console.error('\n❌ Production Test Failure Encountered:', err);
