@@ -37,14 +37,14 @@ export const LoginPage = () => {
       ) {
         // Enforce role authorization against target route
         if (trimmed.startsWith('/admin') && user.role !== 'ADMIN') {
-          return '/access-denied';
+          return user.role === 'FACILITATOR' ? '/facilitator' : '/topics';
         }
         if (
           trimmed.startsWith('/facilitator') &&
           user.role !== 'FACILITATOR' &&
           user.role !== 'ADMIN'
         ) {
-          return '/access-denied';
+          return '/topics';
         }
         return trimmed;
       }

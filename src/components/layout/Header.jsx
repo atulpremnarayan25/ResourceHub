@@ -18,7 +18,7 @@ export const Header = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/login', { replace: true, state: null });
     setMobileMenuOpen(false);
   };
 

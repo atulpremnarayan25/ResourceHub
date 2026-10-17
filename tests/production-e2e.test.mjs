@@ -211,7 +211,7 @@ async function runProductionTests() {
     await page.locator('#password').fill('atul1234');
     await page.click('button[type="submit"]');
     await page.waitForURL(url => url.pathname.includes('/admin/topics'));
-    assert(await page.locator('.header-actions .badge-role:has-text("ADMIN")').isVisible(), 'Primary sign-in grants Admin session');
+    await page.waitForSelector('.header-actions .badge-role:has-text("ADMIN")');
     console.log('✓ Test 8 passed: 1-Click button removed and primary authentication with return URL verified');
 
     // =========================================================================

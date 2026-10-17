@@ -76,7 +76,7 @@ async function runTests() {
     await page.waitForSelector('.modal-dialog', { state: 'detached', timeout: 10000 });
 
     // Verify topic now exists in table
-    const topicRow = page.locator('table tbody tr').filter({ hasText: testTopicName });
+    const topicRow = page.locator('table tbody tr').filter({ hasText: testTopicName }).first();
     await topicRow.waitFor({ state: 'visible', timeout: 5000 });
     assert(await topicRow.isVisible(), 'Created topic should appear in Admin topic list');
     console.log('✓ Test 3 passed: Admin topic creation verified');
